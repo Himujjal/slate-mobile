@@ -1,0 +1,18 @@
+{
+  "name": "slate-server",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "bun run --watch src/index.ts",
+    "start": "bun run src/index.ts",
+    "lint": "biome check .",
+    "lint:fix": "biome check --write ."
+  },
+  "dependencies": {
+    "elysia": "^1.1.10"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^1.9.0",
+    "bun-types": "^1.1.0"
+  }
+}
