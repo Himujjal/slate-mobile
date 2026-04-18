@@ -1,6 +1,6 @@
 import {
-  type Observable,
   type ImmutableObservableBase,
+  type Observable,
   observable,
 } from '@legendapp/state';
 
@@ -14,7 +14,9 @@ export interface FluxStoreConfig<T> {
 
 export type FluxStoreType = 'tabular' | 'kv';
 
-export function createTabularStore<T>(config: FluxStoreConfig<T>): Observable<T> {
+export function createTabularStore<T>(
+  config: FluxStoreConfig<T>
+): Observable<T> {
   const store$ = observable({
     ...config.initial,
   } as T);
@@ -30,9 +32,7 @@ export function createKvStore<T>(config: FluxStoreConfig<T>): Observable<T> {
   return store$;
 }
 
-export function createFluxStore<T>(
-  config: FluxStoreConfig<T>
-): Observable<T> {
+export function createFluxStore<T>(config: FluxStoreConfig<T>): Observable<T> {
   const store$ = observable({
     ...config.initial,
   } as T);

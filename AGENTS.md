@@ -153,6 +153,17 @@ import { useThemeColor } from '@/hooks/use-theme-color';
 const color = useThemeColor({ light: '#fff', dark: '#000' }, 'text');
 ```
 
+### State Management (Flux)
+
+See [flux/AGENTS.md](./flux/AGENTS.md) for full Flux guidelines.
+
+```typescript
+import { createKvStore, useFluxValue } from '@flux';
+
+const store$ = createKvStore<{ count: number }>({ initial: { count: 0 }, name: 'store' });
+const count = useFluxValue(store$.count);
+```
+
 ### Platform-Specific Code
 
 ```typescript
@@ -163,7 +174,6 @@ const shortcut = Platform.select({
   android: 'cmd + m',
   web: 'F12',
 });
-```
 
 ## Additional Notes
 
