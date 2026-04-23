@@ -1,26 +1,43 @@
 const fs = require('node:fs');
 const path = require('node:path');
 
-const HOOK_DIR = '.git/hooks';
-const SOURCE_DIR = 'githooks';
+const HOOK_DIR = path.join(process.cwd(), '.git', 'hooks');
 const HOOK_NAME = 'pre-commit';
 
-if (!fs.existsSync(SOURCE_DIR)) {
-  console.log('No githooks directory found. Skipping hook installation.');
-  process.exit(0);
-}
+const SOURCE_CONTENT = `
+#!/bin/sh
+# Pre-commit hook
 
-if (!fs.existsSync(HOOK_DIR)) {
-  fs.mkdirSync(HOOK_DIR, { recursive: true });
-}
+echo "Running pre-commit checks..."
 
-const sourcePath = path.join(SOURCE_DIR, HOOK_NAME);
-if (fs.existsSync(sourcePath)) {
-  fs.copyFileSync(sourcePath, path.join(HOOK_DIR, HOOK_NAME));
-  fs.chmodSync(path.join(HOOK_DIR, HOOK_NAME), '755');
-  console.log(`Installed ${HOOK_NAME} hook.`);
-} else {
-  console.log(`Warning: ${sourcePath} not found.`);
-}
+# Run type check
+echo "Running TypeScript check..."
+npx tsc --noEmit
+if [ $? -ne 0 ]; then
+  echo "TypeScript check failed!"
+  exit 1
+fi
+
+# Run lint
+echo "Running Biome lint..."
+npx biome check .
+if [ $? -ne 0 ]; then
+  echo "Lint check failed! Run 'npm run lint:fix' to fix issues."
+  exit 1
+fi
+
+# Run commitlint
+echo "Running commitlint..."
+npx commitlint --from HEAD~1 --to HEAD --verbose
+if [ $? -ne 0 ]; then
+  echo "Commit message check failed!"
+  exit 1
+fi
+
+echo "All pre-commit checks passed!"
+exit 0
+`;
+
+fs.writeFileSync(path.join(HOOK_DIR, HOOK_NAME), SOURCE_CONTENT);
 
 console.log('Git hooks installed successfully.');
