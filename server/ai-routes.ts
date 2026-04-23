@@ -28,7 +28,9 @@ const llmAuthChecker = () =>
   new Elysia().derive(({ headers, store }) => {
     const authHeader = headers.authorization;
     const isAuthenticated = authHeader?.startsWith('Bearer ') ?? false;
-    const authCheckTime = ((store as Record<string, unknown>).authCheckTime as number) || Date.now();
+    const authCheckTime =
+      ((store as Record<string, unknown>).authCheckTime as number) ||
+      Date.now();
     return { isAuthenticated, authCheckTime };
   });
 
@@ -36,7 +38,9 @@ export const aiRoutes = new Elysia({ prefix: '/api' })
   .use(llmRateLimiter())
   .use(llmAuthChecker())
   .derive(({ store }) => {
-    const authState = (store as Record<string, unknown>).authState as AuthState | undefined;
+    const authState = (store as Record<string, unknown>).authState as
+      | AuthState
+      | undefined;
     return {
       isAuthenticated: authState?.isAuthenticated ?? false,
       authCheckTime: authState?.authCheckTime ?? Date.now(),

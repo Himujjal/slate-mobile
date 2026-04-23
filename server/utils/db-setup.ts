@@ -1,4 +1,4 @@
-import { Kysely } from 'kysely';
+import type { Kysely } from 'kysely';
 
 export interface Database {
   users: {
@@ -24,23 +24,11 @@ export interface Database {
   };
 }
 
-let db: Kysely<Database> | null = null;
+const db: Kysely<Database> | null = null;
 
 export function getDb(): Kysely<Database> {
   if (!db) {
-    db = new Kysely<Database>({
-      dialect: {
-        createAdapter: () => {
-          throw new Error('Database adapter not configured');
-        },
-        createDriver: () => {
-          throw new Error('Database driver not configured');
-        },
-        createIntrospector: () => {
-          throw new Error('Database introspector not configured');
-        },
-      },
-    });
+    throw new Error('Database not configured');
   }
   return db;
 }
