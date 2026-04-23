@@ -1,5 +1,6 @@
 const fs = require('node:fs');
 const path = require('node:path');
+const { execSync } = require('node:child_process');
 
 const HOOK_DIR = path.join(process.cwd(), '.git', 'hooks');
 const HOOK_NAME = 'pre-commit';
@@ -41,3 +42,6 @@ exit 0
 fs.writeFileSync(path.join(HOOK_DIR, HOOK_NAME), SOURCE_CONTENT);
 
 console.log('Git hooks installed successfully.');
+
+// Run the command `chmod +x .git/hooks/pre-commit` in node
+execSync(`chmod +x ${HOOK_DIR}/${HOOK_NAME}`);

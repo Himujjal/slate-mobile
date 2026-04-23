@@ -11,8 +11,8 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
     },
     {
       body: t.Object({
-        email: t.String({ format: 'email' }),
-        password: t.String({ minLength: 8, maxLength: 20 }),
+        email: t.Email(),
+        password: t.String(),
       }),
     }
   )
@@ -29,9 +29,9 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
     },
     {
       body: t.Object({
-        email: t.String({ format: 'email' }),
-        password: t.String({ minLength: 8, maxLength: 20 }),
-        name: t.String({ minLength: 2, maxLength: 20 }),
+        email: t.Email(),
+        password: t.String(),
+        name: t.String(),
       }),
     }
   )
