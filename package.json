@@ -4,7 +4,7 @@
   "version": "1.0.0",
   "scripts": {
     "dev": "concurrently --kill-others \"npm run dev:server\" \"npm run dev:expo\"",
-    "dev:server": "cd server && bun run dev",
+    "dev:server": "bun run --watch server/index.ts",
     "dev:expo": "expo start",
     "reset-project": "node ./scripts/reset-project.js",
     "android": "expo start --android",
@@ -24,6 +24,7 @@
     "@react-navigation/bottom-tabs": "^7.4.0",
     "@react-navigation/elements": "^2.6.3",
     "@react-navigation/native": "^7.1.8",
+    "@sinclair/typebox": "^0.34.49",
     "elysia": "^1.4.28",
     "expo": "~54.0.33",
     "expo-constants": "~18.0.13",
