@@ -40,15 +40,16 @@ Slate server is an Elysia.js (Bun) API server that provides:
 
 ### Imports
 
-- Use relative imports for local modules
+- Use path aliases for absolute imports (`@ui/*`, `@app/*`, `@hooks/*`, `@constants/*`, `@flux/*`, `@scripts/*`) from the root Slate folder
+- Alternatively use relative imports for local modules
 - Organize: external libraries → internal modules
 
 Example:
 ```typescript
 import { Elysia } from 'elysia';
 import { t } from 'elysia';
+import { ThemedText } from '@ui/playground';
 import { rateLimiter, authChecker } from './middlewares';
-import { someLocalHandler } from './utils/handlers';
 ```
 
 ### Routes Pattern

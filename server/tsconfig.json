@@ -11,10 +11,18 @@
     "types": ["bun-types"],
     "lib": ["ES2022"],
     "jsx": "react-jsx",
-    "AllowImportingTsExtensions": true,
-    "NoEmit": true,
+    "allowImportingTsExtensions": true,
+    "noEmit": true,
     "resolveJsonModule": true,
-    "isolatedModules": true
+    "isolatedModules": true,
+    "paths": {
+      "@ui/*": ["../ui/*"],
+      "@app/*": ["../app/*"],
+      "@hooks/*": ["../hooks/*"],
+      "@constants/*": ["../constants/*"],
+      "@flux/*": ["../flux/*"],
+      "@scripts/*": ["../scripts/*"]
+    }
   },
   "include": ["*.ts"],
   "exclude": ["node_modules"]

@@ -37,14 +37,14 @@ npm run reset-project  # Reset app directory to starter template
 
 ### Imports
 
-- Use path alias `@/` for absolute imports (e.g., `@/components/ThemedText`)
+- Use path aliases for absolute imports (`@ui/*`, `@app/*`, `@hooks/*`, `@constants/*`, `@flux/*`, `@scripts/*`)
 - Organize imports with Biome (enabled in config)
 - Group: external libraries → internal modules → relative imports
 - Example:
   ```typescript
   import { useState } from 'react';
   import { Image } from 'expo-image';
-  import { ThemedText } from '@/components/themed-text';
+  import { ThemedText } from '@ui/playground';
   ```
 
 ### Naming Conventions
@@ -133,7 +133,7 @@ slate/
 ## Configuration Files
 
 - **biome.json**: Linting and formatting rules
-- **tsconfig.json**: TypeScript configuration (strict mode, path aliases)
+- **tsconfig.json**: TypeScript configuration (strict mode, path aliases via `@ui/*`, `@app/*`, etc.)
 - **app.json**: Expo configuration
 
 ## Common Patterns
@@ -148,7 +148,7 @@ Use `expo-router` file-based routing. Define routes with file structure:
 ### Theming
 
 ```typescript
-import { useThemeColor } from '@/hooks/use-theme-color';
+import { useThemeColor } from '@hooks/use-theme-color';
 
 const color = useThemeColor({ light: '#fff', dark: '#000' }, 'text');
 ```
@@ -158,7 +158,7 @@ const color = useThemeColor({ light: '#fff', dark: '#000' }, 'text');
 See [flux/AGENTS.md](./flux/AGENTS.md) for full Flux guidelines.
 
 ```typescript
-import { createKvStore, useFluxValue } from '@flux';
+import { createKvStore, useFluxValue } from '@flux/core';
 
 const store$ = createKvStore<{ count: number }>({ initial: { count: 0 }, name: 'store' });
 const count = useFluxValue(store$.count);

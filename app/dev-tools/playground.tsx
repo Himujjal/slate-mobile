@@ -1,5 +1,7 @@
 import { View } from 'react-native';
 
-export const Playground = () => {
+function Playground() {
   return <View>Playground</View>;
-};
+}
+
+export default Playground;

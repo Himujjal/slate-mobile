@@ -1,5 +1,4 @@
-import { FluxTestUI } from '@/flux/flux-test';
-import { ScrollView } from 'react-native';
+import { FluxTestUI } from '@flux/flux-test';
 
 export default function FluxTestPage() {
   return <FluxTestUI />;

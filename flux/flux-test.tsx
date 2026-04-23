@@ -1,10 +1,3 @@
-import {
-  batch,
-  createFluxStore,
-  observer,
-  useFluxComputed,
-  useFluxValue,
-} from '@/flux';
 import { useState } from 'react';
 import {
   Button,
@@ -14,6 +7,13 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import {
+  batch,
+  createFluxStore,
+  observer,
+  useFluxComputed,
+  useFluxValue,
+} from './index';
 
 const basicStore$ = createFluxStore<{ count: number }>({
   initial: { count: 0 },

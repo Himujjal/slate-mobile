@@ -8,6 +8,9 @@ export default function DevToolsIndex() {
       <Link href="/dev-tools/flux-test" style={styles.link}>
         Flux Test
       </Link>
+      <Link href="/dev-tools/playground" style={styles.link}>
+        Playground
+      </Link>
     </View>
   );
 }
