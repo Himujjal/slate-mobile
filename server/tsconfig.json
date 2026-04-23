@@ -8,8 +8,14 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "outDir": "./dist",
-    "types": ["bun-types"]
+    "types": ["bun-types"],
+    "lib": ["ES2022"],
+    "jsx": "react-jsx",
+    "AllowImportingTsExtensions": true,
+    "NoEmit": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true
   },
-  "include": ["src/**/*"],
+  "include": ["*.ts"],
   "exclude": ["node_modules"]
 }
