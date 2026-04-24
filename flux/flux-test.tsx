@@ -1,3 +1,10 @@
+/**
+ * This is an AI generated test for checking the different variants of hte flux library
+ * as an UI.
+ *
+ * UIs are the best ways to gauge if a library is working as the user finds it easy to test the same.
+ * KISS!
+ * */
 import { useState } from 'react';
 import {
   Button,
@@ -665,11 +672,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
   },
   testTitle: {
     fontSize: 18,

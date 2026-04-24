@@ -1,5 +1,6 @@
+import { Text } from '@ui/index';
 import { Link } from 'expo-router';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
 export default function DevToolsIndex() {
   return (

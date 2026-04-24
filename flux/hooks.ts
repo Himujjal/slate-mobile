@@ -3,7 +3,7 @@ import { observer, useObservable, useValue } from '@legendapp/state/react';
 
 export { useValue, observer };
 
-export function useFluxValue<T>(selector: Observable<T> | (() => T)) {
+export function useFluxValue<T>(selector: Observable<T> | (() => T)): T {
   return useValue(selector);
 }
 

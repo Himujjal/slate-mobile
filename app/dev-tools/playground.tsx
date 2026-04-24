@@ -1,7 +1,16 @@
-import { View } from 'react-native';
+import { Playground } from '@ui/playground';
+import { ThemeToggleButton } from '@ui/theme';
+import { Stack } from 'expo-router';
 
-function Playground() {
-  return <View>Playground</View>;
+export default function PlaygroundRoute() {
+  return (
+    <>
+      <Stack.Screen
+        options={{
+          headerRight: () => <ThemeToggleButton />,
+        }}
+      />
+      <Playground />
+    </>
+  );
 }
-
-export default Playground;
