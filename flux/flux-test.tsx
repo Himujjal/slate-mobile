@@ -1,3 +1,4 @@
+import { Text, TextInput } from '@ui/index';
 /**
  * This is an AI generated test for checking the different variants of hte flux library
  * as an UI.
@@ -6,14 +7,7 @@
  * KISS!
  * */
 import { useState } from 'react';
-import {
-  Button,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
+import { Button, ScrollView, StyleSheet, View } from 'react-native';
 import {
   batch,
   createFluxStore,
@@ -424,7 +418,6 @@ const FormValidation = observer(() => {
       <Text style={styles.testTitle}>9. Form Validation</Text>
       <Text style={styles.inputLabel}>Username:</Text>
       <TextInput
-        style={styles.input}
         value={form.username}
         onChangeText={handleUsernameChange}
         placeholder="Enter username"
@@ -436,7 +429,6 @@ const FormValidation = observer(() => {
       )}
       <Text style={styles.inputLabel}>Email:</Text>
       <TextInput
-        style={styles.input}
         value={form.email}
         onChangeText={handleEmailChange}
         placeholder="Enter email"
@@ -448,7 +440,6 @@ const FormValidation = observer(() => {
       )}
       <Text style={styles.inputLabel}>Age:</Text>
       <TextInput
-        style={styles.input}
         value={form.age === 0 ? '' : String(form.age)}
         onChangeText={handleAgeChange}
         placeholder="Enter age"
@@ -543,18 +534,16 @@ const SearchAndFilter = observer(() => {
   };
 
   return (
-    <View style={styles.testCard}>
+    <ScrollView style={styles.testCard}>
       <Text style={styles.testTitle}>10. Search & Filter</Text>
       <Text style={styles.inputLabel}>Search:</Text>
       <TextInput
-        style={styles.input}
         value={filters.search}
         onChangeText={handleSearchChange}
         placeholder="Search items..."
       />
       <Text style={styles.inputLabel}>Category:</Text>
       <TextInput
-        style={styles.input}
         value={filters.category}
         onChangeText={handleCategoryChange}
         placeholder="electronics, clothing..."
@@ -563,7 +552,6 @@ const SearchAndFilter = observer(() => {
         <View style={styles.priceInput}>
           <Text style={styles.inputLabel}>Min $:</Text>
           <TextInput
-            style={styles.input}
             value={filters.minPrice === 0 ? '' : String(filters.minPrice)}
             onChangeText={handleMinPriceChange}
             placeholder="0"
@@ -573,7 +561,6 @@ const SearchAndFilter = observer(() => {
         <View style={styles.priceInput}>
           <Text style={styles.inputLabel}>Max $:</Text>
           <TextInput
-            style={styles.input}
             value={filters.maxPrice === 9999 ? '' : String(filters.maxPrice)}
             onChangeText={handleMaxPriceChange}
             placeholder="9999"
@@ -594,7 +581,7 @@ const SearchAndFilter = observer(() => {
       <View style={styles.buttonRow}>
         <Button title="Clear" onPress={clearFilters} />
       </View>
-    </View>
+    </ScrollView>
   );
 });
 
@@ -630,31 +617,37 @@ const ComputedChain = observer(() => {
 
 export function FluxTestUI() {
   return (
-    <ScrollView style={styles.container}>
-      <Text style={styles.header}>Flux UI Tests</Text>
-      <Text style={styles.subHeader}>
-        Interactive tests to verify flux state management
-      </Text>
+    <View style={{ flex: 1 }}>
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.contentContainer}
+      >
+        <Text style={styles.header}>Flux UI Tests</Text>
+        <Text style={styles.subHeader}>
+          Interactive tests to verify flux state management
+        </Text>
 
-      <BasicCounter />
-      <DerivedState />
-      <MultipleStores />
-      <BatchUpdates />
-      <ArrayState />
-      <ResetState />
-      <NestedObjectState />
-      <TransactionQueue />
-      <FormValidation />
-      <SearchAndFilter />
-      <ComputedChain />
-    </ScrollView>
+        <BasicCounter />
+        <DerivedState />
+        <MultipleStores />
+        <BatchUpdates />
+        <ArrayState />
+        <ResetState />
+        <NestedObjectState />
+        <TransactionQueue />
+        <FormValidation />
+        <SearchAndFilter />
+        <ComputedChain />
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+  },
+  contentContainer: {
     padding: 16,
   },
   header: {
@@ -668,7 +661,6 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   testCard: {
-    backgroundColor: '#fff',
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,

@@ -8,12 +8,29 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { AvatarDemo } from './avatar/avatar-demo';
+import { BadgeDemo } from './badge/badge-demo';
+import { BottomSheetDemo } from './bottom-sheet/bottom-sheet-demo';
 import { ButtonDemo } from './button/button-demo';
+import { CardDemo } from './card/card-demo';
+import { CheckboxDemo } from './checkbox/checkbox-demo';
+import { ChipDemo } from './chip/chip-demo';
+import { DividerDemo } from './divider/divider-demo';
+import { FabDemo } from './fab/fab-demo';
+import { IconDemo } from './icon/icon-demo';
+import { ImageDemo } from './image/image-demo';
+import { ListItemDemo } from './list-item/list-item-demo';
+import { ModalDemo } from './modal/modal-demo';
+import { RadioButtonDemo } from './radio-button/radio-button-demo';
 import { SIDEBAR_WIDTH } from './sidebar/sidebar';
 import { SidebarDemo } from './sidebar/sidebar-demo';
+import { SkeletonDemo } from './skeleton/skeleton-demo';
+import { SliderDemo } from './slider/slider-demo';
+import { SwitchDemo } from './switch/switch-demo';
 import { TextInputDemo } from './text-input/text-input-demo';
 import { TextDemo } from './text/text-demo';
 import { Colors, FontSizes, Radius, Spacing, useThemeColor } from './theme';
+import { ToastDemo } from './toast/toast-demo';
 
 type ComponentName =
   | 'Button'
@@ -131,10 +148,44 @@ function DemoContent({ component }: { component: ComponentName }) {
   switch (component) {
     case 'Button':
       return <ButtonDemo />;
-    case 'Sidebar':
-      return <SidebarDemo />;
+    case 'Card':
+      return <CardDemo />;
+    case 'Avatar':
+      return <AvatarDemo />;
+    case 'Badge':
+      return <BadgeDemo />;
+    case 'Chip':
+      return <ChipDemo />;
+    case 'Checkbox':
+      return <CheckboxDemo />;
+    case 'Switch':
+      return <SwitchDemo />;
+    case 'Slider':
+      return <SliderDemo />;
+    case 'RadioButton':
+      return <RadioButtonDemo />;
     case 'Text':
       return <TextDemo />;
+    case 'Icon':
+      return <IconDemo />;
+    case 'Image':
+      return <ImageDemo />;
+    case 'Divider':
+      return <DividerDemo />;
+    case 'ListItem':
+      return <ListItemDemo />;
+    case 'FAB':
+      return <FabDemo />;
+    case 'Modal':
+      return <ModalDemo />;
+    case 'BottomSheet':
+      return <BottomSheetDemo />;
+    case 'Toast':
+      return <ToastDemo />;
+    case 'Skeleton':
+      return <SkeletonDemo />;
+    case 'Sidebar':
+      return <SidebarDemo />;
     case 'TextInput':
       return <TextInputDemo />;
     default:
