@@ -23,6 +23,10 @@ export function ModalDemo() {
     light: Colors.light.muted,
     dark: Colors.dark.muted,
   });
+  const border = useThemeColor({
+    light: Colors.light.border,
+    dark: Colors.dark.border,
+  });
 
   const openModal = useCallback((modal: string) => {
     switch (modal) {
@@ -100,7 +104,7 @@ export function ModalDemo() {
         },
         input: {
           borderWidth: 1,
-          borderColor: Colors.light.border,
+          borderColor: border,
           borderRadius: Radius.md,
           padding: Spacing[3],
           fontSize: FontSizes.base,
@@ -112,7 +116,7 @@ export function ModalDemo() {
           marginTop: Spacing[2],
         },
       }),
-    [mutedFg, mutedBg]
+    [mutedFg, mutedBg, border]
   );
 
   return (

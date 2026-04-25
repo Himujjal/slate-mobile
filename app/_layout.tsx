@@ -7,7 +7,10 @@ import {
   type StackNavigationOptions,
   createStackNavigator,
 } from '@react-navigation/stack';
+import { ToastProvider } from '@ui/index';
+import { Colors, ThemeProvider, useThemeColor } from '@ui/theme';
 import { withLayoutContext } from 'expo-router';
+import { View } from 'react-native';
 
 /**
  *
@@ -15,7 +18,7 @@ import { withLayoutContext } from 'expo-router';
  * */
 function Routes() {
   return (
-    <>
+    <View style={{ height: '100%', width: '100%' }} id="outermost">
       <JsStack.Screen name="index" options={{ title: 'Slate' }} />
       <JsStack.Screen name="dev-tools" options={{ title: 'Dev Tools' }} />
       <JsStack.Screen
@@ -26,7 +29,7 @@ function Routes() {
         name="dev-tools/playground"
         options={{ title: 'Playground' }}
       />
-    </>
+    </View>
   );
 }
 
@@ -38,8 +41,6 @@ export const JsStack = withLayoutContext<
   StackNavigationState<ParamListBase>,
   StackNavigationEventMap
 >(Navigator);
-
-import { Colors, ThemeProvider, useThemeColor } from '@ui/theme';
 
 function RootStack() {
   const backgroundColor = useThemeColor({
@@ -67,6 +68,7 @@ function RootStack() {
         headerShadowVisible: false,
         cardStyle: {
           backgroundColor,
+          height: '100%',
         },
       }}
     >
@@ -78,7 +80,9 @@ function RootStack() {
 export default function RootLayout() {
   return (
     <ThemeProvider>
-      <RootStack />
+      <ToastProvider>
+        <RootStack />
+      </ToastProvider>
     </ThemeProvider>
   );
 }

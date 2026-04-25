@@ -8,7 +8,7 @@ import {
   useEffect,
   useState,
 } from 'react';
-import { Platform, Pressable, Text } from 'react-native';
+import { Platform, Pressable, Text, useColorScheme } from 'react-native';
 
 type Theme = 'light' | 'dark';
 
@@ -145,14 +145,20 @@ export function useThemeColor(
 }
 
 function useThemeState() {
+  const systemColorScheme = useColorScheme();
   const [theme, setTheme] = useState<Theme>('light');
 
   useEffect(() => {
-    const value = kv.getString(THEME_KEY);
-    if (value === 'light' || value === 'dark') {
-      setTheme(value);
+    const stored = kv.getString(THEME_KEY);
+    if (stored === 'light' || stored === 'dark') {
+      setTheme(stored);
+      return;
     }
-  }, []);
+
+    const systemTheme = systemColorScheme ?? 'light';
+    setTheme(systemTheme);
+    kv.setString(THEME_KEY, systemTheme);
+  }, [systemColorScheme]);
 
   const toggleTheme = useCallback(() => {
     setTheme((prev) => {

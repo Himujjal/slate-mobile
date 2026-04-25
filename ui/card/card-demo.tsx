@@ -13,6 +13,14 @@ export function CardDemo() {
     light: Colors.light.muted,
     dark: Colors.dark.muted,
   });
+  const primary = useThemeColor({
+    light: Colors.light.primary,
+    dark: Colors.dark.primary,
+  });
+  const primaryFg = useThemeColor({
+    light: Colors.light.primaryForeground,
+    dark: Colors.dark.primaryForeground,
+  });
 
   const styles = useMemo(
     () =>
@@ -60,16 +68,16 @@ export function CardDemo() {
           paddingHorizontal: Spacing[2],
           paddingVertical: Spacing[1],
           borderRadius: Radius.sm,
-          backgroundColor: Colors.light.primary,
+          backgroundColor: primary,
           marginBottom: Spacing[2],
         },
         badgeText: {
           fontSize: FontSizes.xs,
           fontWeight: '600',
-          color: Colors.light.primaryForeground,
+          color: primaryFg,
         },
       }),
-    [mutedFg, mutedBg]
+    [mutedFg, mutedBg, primary, primaryFg]
   );
 
   return (

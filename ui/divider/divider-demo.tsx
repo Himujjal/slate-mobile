@@ -21,6 +21,10 @@ export function DividerDemo() {
     light: Colors.light.foreground,
     dark: Colors.dark.foreground,
   });
+  const primary = useThemeColor({
+    light: Colors.light.primary,
+    dark: Colors.dark.primary,
+  });
 
   const styles = useMemo(
     () =>
@@ -59,7 +63,7 @@ export function DividerDemo() {
           width: 40,
           height: 40,
           borderRadius: Radius.md,
-          backgroundColor: Colors.light.primary,
+          backgroundColor: primary,
         },
         table: {
           gap: Spacing[2],
@@ -83,7 +87,7 @@ export function DividerDemo() {
           color: mutedFg,
         },
       }),
-    [mutedFg, mutedBg, fg]
+    [mutedFg, mutedBg, fg, primary]
   );
 
   const sizes: DividerSize[] = ['sm', 'md', 'lg'];

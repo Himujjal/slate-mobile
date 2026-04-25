@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { Text } from '../text/text';
-import { Spacing } from '../theme';
+import { Radius, Spacing } from '../theme';
 import { Colors, useThemeColor } from '../theme';
 import { Chip } from './chip';
 
@@ -242,7 +242,7 @@ const styles = StyleSheet.create({
   },
   section: {
     padding: Spacing[4],
-    borderRadius: 12,
+    borderRadius: Radius.lg,
     borderWidth: 1,
   },
   sectionTitle: {

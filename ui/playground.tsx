@@ -383,10 +383,12 @@ export function Playground({
           flex: 1,
           flexDirection: 'row',
           backgroundColor: bg,
+          minHeight: 0,
         },
         demoArea: {
           flex: 1,
           backgroundColor: bg,
+          minHeight: 0,
         },
         demoAreaExpanded: {
           marginLeft: 0,
@@ -409,6 +411,7 @@ export function Playground({
         },
         demoScroll: {
           flex: 1,
+          minHeight: 0,
         },
         demoContent: {
           padding: Spacing[6],
@@ -461,7 +464,9 @@ export function Playground({
         </View>
         <ScrollView
           style={styles.demoScroll}
-          contentContainerStyle={styles.demoContent}
+          contentContainerStyle={{ padding: Spacing[6] }}
+          showsVerticalScrollIndicator={Platform.OS !== 'web'}
+          scrollIndicatorInsets={{ right: 1 }}
         >
           <DemoContent component={selected} />
         </ScrollView>

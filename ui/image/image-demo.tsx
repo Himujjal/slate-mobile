@@ -20,6 +20,14 @@ export function ImageDemo() {
     light: Colors.light.muted,
     dark: Colors.dark.muted,
   });
+  const destructive = useThemeColor({
+    light: Colors.light.destructive,
+    dark: Colors.dark.destructive,
+  });
+  const destructiveFg = useThemeColor({
+    light: Colors.light.destructiveForeground,
+    dark: Colors.dark.destructiveForeground,
+  });
 
   const [imageError, setImageError] = useState(false);
 
@@ -58,16 +66,16 @@ export function ImageDemo() {
         errorButton: {
           paddingHorizontal: Spacing[4],
           paddingVertical: Spacing[2],
-          backgroundColor: Colors.light.destructive,
+          backgroundColor: destructive,
           borderRadius: Radius.md,
         },
         errorButtonText: {
           fontSize: FontSizes.sm,
-          color: Colors.light.destructiveForeground,
+          color: destructiveFg,
           fontWeight: '600',
         },
       }),
-    [mutedFg, mutedBg]
+    [mutedFg, mutedBg, destructive, destructiveFg]
   );
 
   const sizes: ImageSize[] = ['sm', 'md', 'lg', 'xl'];

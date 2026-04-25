@@ -16,6 +16,14 @@ export function ListItemDemo() {
     light: Colors.light.primary,
     dark: Colors.dark.primary,
   });
+  const primaryFg = useThemeColor({
+    light: Colors.light.primaryForeground,
+    dark: Colors.dark.primaryForeground,
+  });
+  const background = useThemeColor({
+    light: Colors.light.background,
+    dark: Colors.dark.background,
+  });
 
   const [selectedItems, setSelectedItems] = useState<Record<number, boolean>>(
     {}
@@ -52,7 +60,7 @@ export function ListItemDemo() {
           alignItems: 'center',
         },
         iconText: {
-          color: Colors.light.primaryForeground,
+          color: primaryFg,
           fontSize: FontSizes.sm,
           fontWeight: '600',
         },
@@ -63,7 +71,7 @@ export function ListItemDemo() {
           backgroundColor: primary,
         },
         badgeText: {
-          color: Colors.light.primaryForeground,
+          color: primaryFg,
           fontSize: FontSizes.xs,
           fontWeight: '600',
         },
@@ -88,7 +96,7 @@ export function ListItemDemo() {
           backgroundColor: primary,
         },
         checkmark: {
-          color: Colors.light.primaryForeground,
+          color: primaryFg,
           fontSize: 12,
           fontWeight: '700',
         },
@@ -103,10 +111,10 @@ export function ListItemDemo() {
           width: 20,
           height: 20,
           borderRadius: Radius.full,
-          backgroundColor: Colors.light.background,
+          backgroundColor: background,
         },
       }),
-    [mutedFg, mutedBg, primary]
+    [mutedFg, mutedBg, primary, primaryFg, background]
   );
 
   const handleSelect = (index: number) => (selected: boolean) => {

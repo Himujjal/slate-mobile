@@ -68,50 +68,73 @@ export function useToast() {
 }
 
 export function ToastProvider({ children }: { children: ReactNode }) {
-  const [toast, setToast] = useState<ToastConfig | null>(null);
+  const [queue, setQueue] = useState<ToastConfig[]>([]);
+  const [currentToast, setCurrentToast] = useState<ToastConfig | null>(null);
   const [isVisible, setIsVisible] = useState(false);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const showToast = useCallback((config: ToastConfig) => {
-    setToast(config);
-    setIsVisible(true);
+    setQueue((prev) => [...prev, config]);
   }, []);
 
   const hideToast = useCallback(() => {
     setIsVisible(false);
   }, []);
 
+  const processQueue = useCallback(() => {
+    setQueue((prev) => {
+      if (prev.length > 0) {
+        const [next, ...rest] = prev;
+        setCurrentToast(next);
+        setIsVisible(true);
+        return rest;
+      }
+      setCurrentToast(null);
+      return prev;
+    });
+  }, []);
+
   useEffect(() => {
-    if (isVisible && toast?.autoDismiss) {
+    if (isVisible && currentToast?.autoDismiss) {
       timeoutRef.current = setTimeout(() => {
         hideToast();
-      }, toast.autoDismiss);
+      }, currentToast.autoDismiss);
     }
     return () => {
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
       }
     };
-  }, [isVisible, toast?.autoDismiss, hideToast]);
+  }, [isVisible, currentToast?.autoDismiss, hideToast]);
 
   useEffect(() => {
-    if (!isVisible && toast) {
+    if (!isVisible && currentToast) {
       LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-      setToast(null);
+      setTimeout(() => {
+        processQueue();
+      }, 200);
     }
-  }, [isVisible, toast]);
+  }, [isVisible, currentToast, processQueue]);
+
+  useEffect(() => {
+    if (!isVisible && queue.length > 0 && !currentToast) {
+      processQueue();
+    }
+  }, [isVisible, queue, currentToast, processQueue]);
 
   return (
     <ToastContext.Provider value={{ showToast, hideToast }}>
       {children}
-      <Toast
-        visible={isVisible}
-        message={toast?.message ?? ''}
-        type={toast?.type ?? 'info'}
-        closable={toast?.closable ?? true}
-        actions={toast?.actions}
-        onDismiss={hideToast}
-      />
+      {currentToast && (
+        <Toast
+          visible={isVisible}
+          message={currentToast.message}
+          type={currentToast.type ?? 'info'}
+          closable={currentToast.closable ?? true}
+          actions={currentToast.actions}
+          onDismiss={hideToast}
+        />
+      )}
     </ToastContext.Provider>
   );
 }

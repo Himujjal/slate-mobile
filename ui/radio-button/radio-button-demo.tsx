@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Colors, FontSizes, Radius, Spacing, useThemeColor } from '../theme';
 import { RadioButton, type RadioButtonSize, RadioGroup } from './radio-button';
@@ -28,6 +28,92 @@ export function RadioButtonDemo() {
     light: Colors.light.muted,
     dark: Colors.dark.muted,
   });
+  const sectionFg = useThemeColor({
+    light: Colors.light.mutedForeground,
+    dark: Colors.dark.mutedForeground,
+  });
+  const cardBg = useThemeColor({
+    light: Colors.light.card,
+    dark: Colors.dark.card,
+  });
+  const border = useThemeColor({
+    light: Colors.light.border,
+    dark: Colors.dark.border,
+  });
+
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        container: {
+          gap: Spacing[6],
+          padding: Spacing[4],
+        },
+        section: {
+          gap: Spacing[3],
+        },
+        sectionTitle: {
+          fontSize: FontSizes.sm,
+          fontWeight: '600',
+          color: sectionFg,
+          textTransform: 'uppercase',
+          letterSpacing: 0.5,
+        },
+        row: {
+          flexDirection: 'row',
+          flexWrap: 'wrap',
+          gap: Spacing[3],
+        },
+        description: {
+          fontSize: FontSizes.sm,
+          color: sectionFg,
+        },
+        groupCard: {
+          backgroundColor: cardBg,
+          borderRadius: Radius.lg,
+          padding: Spacing[4],
+          gap: Spacing[3],
+        },
+        groupLabel: {
+          fontSize: FontSizes.base,
+          fontWeight: '600',
+        },
+        groupItems: {
+          gap: Spacing[3],
+        },
+        selectedText: {
+          fontSize: FontSizes.sm,
+          color: sectionFg,
+        },
+        formCard: {
+          backgroundColor: cardBg,
+          borderRadius: Radius.lg,
+          padding: Spacing[4],
+          gap: Spacing[3],
+        },
+        formTitle: {
+          fontSize: FontSizes.lg,
+          fontWeight: '600',
+        },
+        formGroup: {
+          gap: Spacing[1],
+        },
+        inputContainer: {
+          borderWidth: 1,
+          borderColor: border,
+          borderRadius: Radius.md,
+        },
+        input: {
+          padding: Spacing[3],
+          fontSize: FontSizes.base,
+        },
+        preferenceLabel: {
+          fontSize: FontSizes.base,
+          fontWeight: '500',
+          marginTop: Spacing[2],
+        },
+      }),
+    [sectionFg, cardBg, border]
+  );
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
@@ -291,73 +377,3 @@ export function RadioButtonDemo() {
     </ScrollView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    gap: Spacing[6],
-    padding: Spacing[4],
-  },
-  section: {
-    gap: Spacing[3],
-  },
-  sectionTitle: {
-    fontSize: FontSizes.sm,
-    fontWeight: '600',
-    color: Colors.light.mutedForeground,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  row: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing[3],
-  },
-  description: {
-    fontSize: FontSizes.sm,
-    color: Colors.light.mutedForeground,
-  },
-  groupCard: {
-    backgroundColor: Colors.light.card,
-    borderRadius: Radius.lg,
-    padding: Spacing[4],
-    gap: Spacing[3],
-  },
-  groupLabel: {
-    fontSize: FontSizes.base,
-    fontWeight: '600',
-  },
-  groupItems: {
-    gap: Spacing[3],
-  },
-  selectedText: {
-    fontSize: FontSizes.sm,
-    color: Colors.light.mutedForeground,
-  },
-  formCard: {
-    backgroundColor: Colors.light.card,
-    borderRadius: Radius.lg,
-    padding: Spacing[4],
-    gap: Spacing[3],
-  },
-  formTitle: {
-    fontSize: FontSizes.lg,
-    fontWeight: '600',
-  },
-  formGroup: {
-    gap: Spacing[1],
-  },
-  inputContainer: {
-    borderWidth: 1,
-    borderColor: Colors.light.border,
-    borderRadius: Radius.md,
-  },
-  input: {
-    padding: Spacing[3],
-    fontSize: FontSizes.base,
-  },
-  preferenceLabel: {
-    fontSize: FontSizes.base,
-    fontWeight: '500',
-    marginTop: Spacing[2],
-  },
-});

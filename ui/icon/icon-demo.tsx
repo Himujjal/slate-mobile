@@ -1,12 +1,20 @@
-import { useMemo } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
-import { Colors, FontSizes, Radius, Spacing, useThemeColor } from '../theme';
+import { useMemo, useState } from 'react';
+import {
+  ActivityIndicator,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
+import { FontSizes, Radius, Spacing, useThemeColor } from '../theme';
 import { Icon, type IconColor, type IconSize } from './icon';
 
-const COMMON_ICONS = [
+const EMOJI_ICONS = [
   { icon: '⭐', label: 'Star' },
   { icon: '❤️', label: 'Heart' },
   { icon: '👍', label: 'Thumbs Up' },
+  { icon: '👎', label: 'Thumbs Down' },
   { icon: '🔔', label: 'Bell' },
   { icon: '⚙️', label: 'Gear' },
   { icon: '📱', label: 'Phone' },
@@ -20,131 +28,259 @@ const COMMON_ICONS = [
   { icon: '❌', label: 'Close' },
   { icon: '➕', label: 'Add' },
   { icon: '➖', label: 'Remove' },
+  { icon: '🔒', label: 'Lock' },
+  { icon: '🔓', label: 'Unlock' },
+  { icon: '👁️', label: 'Eye' },
+  { icon: '🔎', label: 'Search' },
+  { icon: '🏠', label: 'Home' },
+  { icon: '⚡', label: 'Lightning' },
+  { icon: '🔥', label: 'Fire' },
+  { icon: '💎', label: 'Gem' },
+  { icon: '🎯', label: 'Target' },
+  { icon: '🏆', label: 'Trophy' },
+  { icon: '💡', label: 'Lightbulb' },
+  { icon: '📌', label: 'Pin' },
+  { icon: '🔗', label: 'Link' },
+  { icon: '⏰', label: 'Alarm' },
+  { icon: '🕐', label: 'Time' },
+  { icon: '📅', label: 'Calendar' },
+  { icon: '👤', label: 'User' },
+  { icon: '👥', label: 'Users' },
+  { icon: '💬', label: 'Chat' },
+  { icon: '📢', label: 'Speaker' },
+  { icon: '🔊', label: 'Volume Up' },
+  { icon: '🔈', label: 'Volume Down' },
+  { icon: '📷', label: 'Camera' },
+  { icon: '🎥', label: 'Video' },
+  { icon: '🎵', label: 'Music' },
+  { icon: '🎮', label: 'Game' },
+  { icon: '🛒', label: 'Cart' },
+  { icon: '💳', label: 'Card' },
+  { icon: '📦', label: 'Package' },
+  { icon: '🚚', label: 'Truck' },
+  { icon: '✈️', label: 'Airplane' },
+  { icon: '⭐️', label: 'Star' },
+  { icon: '💯', label: 'Hundred' },
 ];
 
+const ICON_NAMES = [
+  'home',
+  'home-outline',
+  'settings',
+  'settings-outline',
+  'search',
+  'search-outline',
+  'person',
+  'person-outline',
+  'heart',
+  'heart-outline',
+  'star',
+  'star-outline',
+  'cart',
+  'cart-outline',
+  'chatbubble',
+  'chatbubble-outline',
+  'notifications',
+  'notifications-outline',
+  'call',
+  'call-outline',
+  'mail',
+  'mail-outline',
+  'lock-closed',
+  'lock-closed-outline',
+  'lock-open',
+  'lock-open-outline',
+  'eye',
+  'eye-outline',
+  'camera',
+  'camera-outline',
+  'videocam',
+  'videocam-outline',
+  'musical-note',
+  'musical-notes',
+  'cloud',
+  'cloud-outline',
+  'folder',
+  'folder-outline',
+  'document',
+  'document-outline',
+  'checkmark-circle',
+  'checkmark-circle-outline',
+  'close-circle',
+  'close-circle-outline',
+  'add-circle',
+  'add-circle-outline',
+  'remove-circle',
+  'remove-circle-outline',
+  'arrow-back',
+  'arrow-forward',
+  'chevron-back',
+  'chevron-forward',
+] as const;
+
 export function IconDemo() {
-  const mutedFg = useThemeColor({
-    light: Colors.light.mutedForeground,
-    dark: Colors.dark.mutedForeground,
-  });
-  const mutedBg = useThemeColor({
-    light: Colors.light.muted,
-    dark: Colors.dark.muted,
-  });
-  const fg = useThemeColor({
-    light: Colors.light.foreground,
-    dark: Colors.dark.foreground,
-  });
+  const [selectedSize, setSelectedSize] = useState<IconSize>('md');
+  const [vectorIcons, setVectorIcons] = useState<
+    typeof import('@expo/vector-icons/Ionicons') | null
+  >(null);
+  const [loading, setLoading] = useState(false);
+  const mutedFg = useThemeColor({ light: '#6b7280', dark: '#9ca3af' });
+  const mutedBg = useThemeColor({ light: '#f3f4f6', dark: '#374151' });
+  const fg = useThemeColor({ light: '#111827', dark: '#f9fafb' });
+
+  const loadVectorIcons = async () => {
+    if (vectorIcons) return;
+    setLoading(true);
+    try {
+      const module = await import('@expo/vector-icons/Ionicons');
+      setVectorIcons(module);
+    } catch {
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const styles = useMemo(
     () =>
       StyleSheet.create({
         container: {
-          gap: Spacing[6],
           padding: Spacing[4],
         },
         section: {
-          gap: Spacing[3],
+          gap: Spacing[4],
+          marginBottom: Spacing[6],
         },
         sectionTitle: {
-          fontSize: FontSizes.sm,
+          fontSize: FontSizes.base,
           fontWeight: '600',
           color: mutedFg,
-          textTransform: 'uppercase',
-          letterSpacing: 0.5,
         },
-        row: {
+        sizesRow: {
           flexDirection: 'row',
-          alignItems: 'center',
-          gap: Spacing[3],
+          gap: Spacing[2],
+        },
+        sizeButton: {
+          paddingHorizontal: Spacing[4],
+          paddingVertical: Spacing[2],
+          borderRadius: Radius.md,
           backgroundColor: mutedBg,
-          padding: Spacing[4],
-          borderRadius: Radius.lg,
+        },
+        sizeButtonActive: {
+          backgroundColor: fg,
+        },
+        sizeLabel: {
+          fontSize: FontSizes.sm,
+          color: mutedFg,
+        },
+        sizeLabelActive: {
+          color: mutedBg,
         },
         iconGrid: {
           flexDirection: 'row',
           flexWrap: 'wrap',
-          gap: Spacing[2],
+          gap: Spacing[4],
         },
         iconItem: {
-          width: 48,
-          height: 48,
+          width: 80,
+          height: 80,
           alignItems: 'center',
           justifyContent: 'center',
           backgroundColor: mutedBg,
-          borderRadius: Radius.md,
+          borderRadius: Radius.lg,
         },
-        label: {
-          fontSize: FontSizes.sm,
-          color: fg,
-          minWidth: 60,
+        iconLabel: {
+          fontSize: FontSizes.xs,
+          color: mutedFg,
+          marginTop: Spacing[1],
         },
       }),
     [mutedFg, mutedBg, fg]
   );
 
+  const SIZE_MAP: Record<IconSize, number> = {
+    sm: 20,
+    md: 28,
+    lg: 36,
+    xl: 44,
+  };
+
   const sizes: IconSize[] = ['sm', 'md', 'lg', 'xl'];
-  const colors: IconColor[] = [
-    'primary',
-    'muted',
-    'destructive',
-    'accent',
-    'secondary',
-  ];
 
   return (
     <ScrollView style={styles.container}>
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Sizes</Text>
-        {sizes.map((size) => (
-          <View key={size} style={styles.row}>
-            <Text style={styles.label}>{size}</Text>
-            <Icon icon="⭐" size={size} />
-          </View>
-        ))}
-      </View>
-
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Colors</Text>
-        <View style={styles.row}>
-          {colors.map((color) => (
-            <Icon key={color} icon="★" color={color} />
+        <Text style={styles.sectionTitle}>Size Selector</Text>
+        <View style={styles.sizesRow}>
+          {sizes.map((size) => (
+            <Pressable
+              key={size}
+              style={[
+                styles.sizeButton,
+                selectedSize === size && styles.sizeButtonActive,
+              ]}
+              onPress={() => setSelectedSize(size)}
+            >
+              <Text
+                style={[
+                  styles.sizeLabel,
+                  selectedSize === size && styles.sizeLabelActive,
+                ]}
+              >
+                {size}
+              </Text>
+            </Pressable>
           ))}
         </View>
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Rotations</Text>
-        <View style={styles.row}>
-          <Icon icon="→" size="lg" rotation={0} />
-          <Icon icon="→" size="lg" rotation={90} />
-          <Icon icon="→" size="lg" rotation={180} />
-          <Icon icon="→" size="lg" rotation={270} />
+        <Text style={styles.sectionTitle}>Emoji Icons (50)</Text>
+        <View style={styles.iconGrid}>
+          {EMOJI_ICONS.map((item) => (
+            <View key={item.label} style={styles.iconItem}>
+              <Icon icon={item.icon} size={selectedSize} />
+              <Text style={styles.iconLabel}>{item.label}</Text>
+            </View>
+          ))}
         </View>
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Common Icons</Text>
-        <View style={styles.row}>
+        <Pressable
+          style={[styles.sizeButton, { alignSelf: 'flex-start' }]}
+          onPress={loadVectorIcons}
+          disabled={!!vectorIcons || loading}
+        >
+          {loading ? (
+            <ActivityIndicator size="small" color={mutedFg} />
+          ) : (
+            <Text style={styles.sizeLabel}>
+              {vectorIcons ? 'Loaded' : 'Load Vector Icons'}
+            </Text>
+          )}
+        </Pressable>
+      </View>
+
+      {vectorIcons && (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Vector Icons - Ionicons (50)</Text>
           <View style={styles.iconGrid}>
-            {COMMON_ICONS.map(({ icon, label }) => (
-              <View key={label} style={styles.iconItem}>
-                <Icon icon={icon} size="lg" />
-              </View>
-            ))}
+            {ICON_NAMES.map((name) => {
+              const IconComponent = vectorIcons.default;
+              return (
+                <View key={name} style={styles.iconItem}>
+                  <IconComponent
+                    name={name as never}
+                    size={SIZE_MAP[selectedSize]}
+                    color={fg}
+                  />
+                  <Text style={styles.iconLabel}>{name}</Text>
+                </View>
+              );
+            })}
           </View>
         </View>
-      </View>
-
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>In Context</Text>
-        <View style={styles.row}>
-          <Icon icon="❤️" color="destructive" />
-          <Text style={[styles.label, { flex: 1 }]}>Like</Text>
-          <Icon icon="🔄" color="muted" />
-          <Icon icon="💾" color="accent" />
-        </View>
-      </View>
+      )}
     </ScrollView>
   );
 }

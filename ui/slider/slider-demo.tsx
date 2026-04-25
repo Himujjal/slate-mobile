@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Colors, FontSizes, Radius, Spacing, useThemeColor } from '../theme';
 import { Slider, type SliderRef } from './slider';
@@ -34,6 +34,74 @@ export function SliderDemo() {
     light: Colors.light.mutedForeground,
     dark: Colors.dark.mutedForeground,
   });
+  const sectionFg = useThemeColor({
+    light: Colors.light.mutedForeground,
+    dark: Colors.dark.mutedForeground,
+  });
+  const cardBg = useThemeColor({
+    light: Colors.light.card,
+    dark: Colors.dark.card,
+  });
+  const border = useThemeColor({
+    light: Colors.light.border,
+    dark: Colors.dark.border,
+  });
+
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        container: {
+          gap: Spacing[6],
+          padding: Spacing[4],
+        },
+        section: {
+          gap: Spacing[3],
+        },
+        sectionTitle: {
+          fontSize: FontSizes.sm,
+          fontWeight: '600',
+          color: sectionFg,
+          textTransform: 'uppercase',
+          letterSpacing: 0.5,
+        },
+        demoBox: {
+          backgroundColor: cardBg,
+          borderRadius: Radius.lg,
+          padding: Spacing[4],
+        },
+        description: {
+          fontSize: FontSizes.sm,
+          color: sectionFg,
+          marginTop: Spacing[1],
+        },
+        formCard: {
+          backgroundColor: cardBg,
+          borderRadius: Radius.lg,
+          padding: Spacing[4],
+          gap: Spacing[3],
+        },
+        formTitle: {
+          fontSize: FontSizes.lg,
+          fontWeight: '600',
+        },
+        formGroup: {
+          gap: Spacing[2],
+        },
+        inputContainer: {
+          borderWidth: 1,
+          borderColor: border,
+          borderRadius: Radius.md,
+        },
+        input: {
+          padding: Spacing[3],
+          fontSize: FontSizes.base,
+        },
+        sliderContainer: {
+          marginTop: Spacing[2],
+        },
+      }),
+    [sectionFg, cardBg, border]
+  );
 
   const handleResetSlider = () => {
     sliderRef.current?.setValue(50);
@@ -246,55 +314,3 @@ export function SliderDemo() {
     </ScrollView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    gap: Spacing[6],
-    padding: Spacing[4],
-  },
-  section: {
-    gap: Spacing[3],
-  },
-  sectionTitle: {
-    fontSize: FontSizes.sm,
-    fontWeight: '600',
-    color: Colors.light.mutedForeground,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  demoBox: {
-    backgroundColor: Colors.light.card,
-    borderRadius: Radius.lg,
-    padding: Spacing[4],
-  },
-  description: {
-    fontSize: FontSizes.sm,
-    color: Colors.light.mutedForeground,
-    marginTop: Spacing[1],
-  },
-  formCard: {
-    backgroundColor: Colors.light.card,
-    borderRadius: Radius.lg,
-    padding: Spacing[4],
-    gap: Spacing[3],
-  },
-  formTitle: {
-    fontSize: FontSizes.lg,
-    fontWeight: '600',
-  },
-  formGroup: {
-    gap: Spacing[2],
-  },
-  inputContainer: {
-    borderWidth: 1,
-    borderColor: Colors.light.border,
-    borderRadius: Radius.md,
-  },
-  input: {
-    padding: Spacing[3],
-    fontSize: FontSizes.base,
-  },
-  sliderContainer: {
-    marginTop: Spacing[2],
-  },
-});

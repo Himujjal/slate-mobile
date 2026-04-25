@@ -1,5 +1,6 @@
+import { useMemo } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
-import { Colors, Radius, Spacing } from '../theme';
+import { Colors, FontSizes, Radius, Spacing, useThemeColor } from '../theme';
 import { Fab, type FabColor, type FabSize } from './fab';
 
 type FabItem = {
@@ -72,6 +73,67 @@ const sections: {
 ];
 
 export function FabDemo() {
+  const background = useThemeColor({
+    light: Colors.light.background,
+    dark: Colors.dark.background,
+  });
+  const foreground = useThemeColor({
+    light: Colors.light.foreground,
+    dark: Colors.dark.foreground,
+  });
+  const mutedFg = useThemeColor({
+    light: Colors.light.mutedForeground,
+    dark: Colors.dark.mutedForeground,
+  });
+  const cardBg = useThemeColor({
+    light: Colors.light.card,
+    dark: Colors.dark.card,
+  });
+
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        container: {
+          flex: 1,
+          padding: Spacing[4],
+          backgroundColor: background,
+        },
+        section: {
+          marginBottom: Spacing[8],
+        },
+        sectionTitle: {
+          fontSize: FontSizes.xl,
+          fontWeight: '700',
+          marginBottom: Spacing[1],
+          color: foreground,
+        },
+        sectionDescription: {
+          fontSize: FontSizes.base,
+          marginBottom: Spacing[4],
+          color: mutedFg,
+        },
+        itemsRow: {
+          flexDirection: 'row',
+          flexWrap: 'wrap',
+          gap: Spacing[4],
+        },
+        itemWrapper: {
+          alignItems: 'center',
+          gap: Spacing[2],
+          padding: Spacing[2],
+          backgroundColor: cardBg,
+          borderRadius: Radius.lg,
+          minWidth: 100,
+        },
+        itemLabel: {
+          fontSize: FontSizes.sm,
+          color: mutedFg,
+          marginTop: Spacing[2],
+        },
+      }),
+    [background, foreground, mutedFg, cardBg]
+  );
+
   return (
     <ScrollView style={styles.container}>
       {sections.map((section) => (
@@ -114,43 +176,3 @@ export function FabDemo() {
     </ScrollView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: Spacing[4],
-    backgroundColor: Colors.light.background,
-  },
-  section: {
-    marginBottom: Spacing[8],
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    marginBottom: Spacing[1],
-    color: Colors.light.foreground,
-  },
-  sectionDescription: {
-    fontSize: 14,
-    marginBottom: Spacing[4],
-    color: Colors.light.mutedForeground,
-  },
-  itemsRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing[4],
-  },
-  itemWrapper: {
-    alignItems: 'center',
-    gap: Spacing[2],
-    padding: Spacing[2],
-    backgroundColor: Colors.light.card,
-    borderRadius: Radius.lg,
-    minWidth: 100,
-  },
-  itemLabel: {
-    fontSize: 12,
-    color: Colors.light.mutedForeground,
-    marginTop: Spacing[2],
-  },
-});
