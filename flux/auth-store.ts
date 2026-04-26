@@ -1,0 +1,64 @@
+import { observable } from '@legendapp/state';
+
+export interface AuthUser {
+  id: string;
+  email: string;
+  name: string;
+}
+
+export interface AuthStateData {
+  user: AuthUser | null;
+  accessToken: string | null;
+  refreshToken: string | null;
+  isAuthenticated: boolean;
+  isLoading: boolean;
+  error: string | null;
+}
+
+const initialState: AuthStateData = {
+  user: null,
+  accessToken: null,
+  refreshToken: null,
+  isAuthenticated: false,
+  isLoading: false,
+  error: null,
+};
+
+export const authState$ = observable(initialState);
+
+export function setAuthTokens(accessToken: string, refreshToken: string) {
+  authState$.accessToken.set(accessToken);
+  authState$.refreshToken.set(refreshToken);
+  authState$.isAuthenticated.set(true);
+}
+
+export function setAuthUser(user: AuthUser) {
+  authState$.user.set(user);
+}
+
+export function setAuthLoading(isLoading: boolean) {
+  authState$.isLoading.set(isLoading);
+}
+
+export function setAuthError(error: string | null) {
+  authState$.error.set(error);
+}
+
+export function clearAuth() {
+  authState$.user.set(null);
+  authState$.accessToken.set(null);
+  authState$.refreshToken.set(null);
+  authState$.isAuthenticated.set(false);
+  authState$.error.set(null);
+}
+
+export function initializeAuth(
+  accessToken: string | null,
+  refreshToken: string | null,
+  user: AuthUser | null
+) {
+  authState$.accessToken.set(accessToken);
+  authState$.refreshToken.set(refreshToken);
+  authState$.user.set(user);
+  authState$.isAuthenticated.set(!!accessToken && !!user);
+}

@@ -13,13 +13,13 @@ import { withLayoutContext } from 'expo-router';
 import { View } from 'react-native';
 
 /**
- *
  * This is the only component that you have to care about
  * */
 function Routes() {
   return (
     <View style={{ height: '100%', width: '100%' }} id="outermost">
       <JsStack.Screen name="index" options={{ title: 'Slate' }} />
+      <JsStack.Screen name="login" options={{ title: 'Sign In' }} />
       <JsStack.Screen name="dev-tools" options={{ title: 'Dev Tools' }} />
       <JsStack.Screen
         name="dev-tools/flux-test"

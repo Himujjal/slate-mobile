@@ -2,12 +2,14 @@ import { Elysia } from 'elysia';
 import { aiRoutes } from './ai-routes';
 import { authRoutes } from './auth-routes';
 import { contentRoutes } from './content-routes';
+import { docsRoutes } from './docs-routes';
 import { orchestrationRoutes } from './orchestration-routes';
 import { utilityRoutes } from './utility-routes';
 
 const app = new Elysia()
   .use(authRoutes)
   .use(aiRoutes)
+  .use(docsRoutes)
   .use(orchestrationRoutes)
   .use(contentRoutes)
   .use(utilityRoutes)

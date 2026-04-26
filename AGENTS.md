@@ -1,8 +1,19 @@
-# Slate - Agent Guidelines
+# Axion - Agent Guidelines
 
 This document provides guidelines for agents working in this codebase.
 
+## Documentation
+
+**IMPORTANT**: Before building any feature or making changes, always check the docs folder first:
+
+- `docs/README.md` - Overview and module structure
+- `docs/auth.md` - Authentication documentation
+
+When building features in the `app/` folder, refer to the relevant docs.
+
 ## Project Overview
+
+Axion is an Expo (React Native) project using TypeScript, expo-router, and Biome for code quality. The app runs on iOS, Android, and web.
 
 Slate is an Expo (React Native) project using TypeScript, expo-router, and Biome for code quality. The app runs on iOS, Android, and web.
 

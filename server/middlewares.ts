@@ -1,4 +1,5 @@
 import { Elysia } from 'elysia';
+import { verifyToken } from './utils/jwt';
 
 const rateLimitStore: Map<string, number> = new Map();
 const RATE_LIMIT_WINDOW = 1000;
@@ -30,4 +31,20 @@ export const authChecker = () =>
     const authHeader = headers.authorization;
     const isAuthenticated = authHeader?.startsWith('Bearer ');
     return { isAuthenticated };
+  });
+
+export const jwtVerifier = () =>
+  new Elysia().derive(async ({ headers }) => {
+    const authHeader = headers.authorization;
+    let user: { sub: string; email: string } | null = null;
+
+    if (authHeader?.startsWith('Bearer ')) {
+      const token = authHeader.slice(7);
+      const payload = await verifyToken(token, 'access');
+      if (payload) {
+        user = { sub: payload.sub, email: payload.email };
+      }
+    }
+
+    return { user };
   });

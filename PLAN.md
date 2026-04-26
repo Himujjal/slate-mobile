@@ -1,51 +1,146 @@
-# Plan for Fixing Playground Demo Rendering
+# Plan for Production-Grade Authentication System
 
 ## Problem Analysis
 
-The right-side container showcasing component demos was not appearing in `/app/dev-tools/playground/` route.
+The current auth system (`server/auth-routes.ts`) uses mock data and has no:
+- JWT token generation/verification
+- Password hashing
+- Token refresh
+- Session management
+- Client-side auth state management
 
-### Root Cause
-The playground used a dynamic route file `[component].tsx` which doesn't work with the custom `JsStack` navigator (created via `createStackNavigator` from `@react-navigation/stack` + `withLayoutContext` from expo-router). Dynamic route files like `[component].tsx` only work with the standard `<Stack>` navigator from expo-router, not with custom navigators.
+## Architecture Overview
 
-Additionally, `[component].tsx` expects a path segment (e.g., `/dev-tools/playground/button`) but the sidebar links used query parameters (e.g., `/dev-tools/playground?component=button`), creating a mismatch.
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                         Client (Expo/React Native)                       │
+├─────────────────────────────────────────────────────────────────────────────┤
+│  ui/                    flux/                    storage/               │
+│  ├── auth-form.tsx      ├── auth-store.ts        └── token-storage.ts   │
+│  ├── login-form.tsx    └── use-auth.tsx                              │
+│  ├── protected-route.tsx                                              │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                    │
+                                    ▼ HTTP + JWT
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                              Server (Elysia.js)                        │
+├─────────────────────────────────────────────────────────────────────────────┤
+│  server/                                                              │
+│  ├── auth-routes.ts    (login, register, logout, refresh, me)         │
+│  ├── middlewares.ts    (jwt-verify, auth-checker)                       │
+│  └── utils/           (jwt, password-hash)                            │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
 
-### Solution
-Per the Expo Router documentation on [URL parameters](https://docs.expo.dev/router/reference/url-parameters/), for a single-page playground that swaps content without navigation stack changes, the correct approach is:
+## Implementation Plan
 
-1. **Delete `[component].tsx`** — dynamic route files don't work with the custom stack navigator
-2. **Render demos directly in `_layout.tsx`** — import all demo components and render them based on query params
-3. **Use query parameters** (`?component=button`) — accessed via `useLocalSearchParams` in the layout
-4. **Use `<Link>` with query params** in the sidebar for navigation
+### Phase 1: Server-Side Auth (server/)
 
-## Fix Steps (Completed)
+- [x] 1. **`server/utils/jwt.ts`** — JWT utilities:
+     - `signToken(payload, expiresIn)` - Create signed JWT
+     - `verifyToken(token)` - Verify and decode JWT
+     - `createTokens(user)` - Create access + refresh token pair
 
-- [x] 1. **`index.tsx`** — Redirect to query param URL:
-   ```tsx
-   return <Redirect href="/dev-tools/playground?component=button" />;
-   ```
+- [x] 2. **`server/utils/password.ts`** — Password hashing:
+     - `hashPassword(password)` - Argon2id hash
+     - `verifyPassword(password, hash)` - Verify password
 
-- [x] 2. **Delete `[component].tsx`** — Removed dynamic route file that doesn't work with JsStack navigator
+- [x] 3. **`server/auth-routes.ts`** — Full auth routes:
+     - `POST /auth/login` - Verify credentials, return tokens
+     - `POST /auth/register` - Create user, return tokens
+     - `POST /auth/refresh` - Refresh access token
+     - `POST /auth/logout` - Invalidate refresh token
+     - `GET /auth/me` - Get current user (protected)
 
-- [x] 3. **`app/_layout.tsx`** — Reverted: removed the invalid `dev-tools/playground/[component]` screen definition
+- [x] 4. **`server/middlewares.ts`** — Auth middleware:
+     - `jwtVerifier()` - Verify JWT on protected routes
+     - Update `authChecker` to extract user from token
 
-- [x] 4. **`_layout.tsx`** — Rewrote to:
-   - Import all 20 demo components directly
-   - Create DEMO_MAP to map component keys to demo functions
-   - Read `component` from `useLocalSearchParams()` (query param)
-   - Render the matching demo directly in the demo area (replacing `{children}`)
-   - Sidebar `<Link>` hrefs use query param format
+### Phase 2: Client-Side Auth State (flux/)
 
-## Files Modified
+- [x] 5. **`flux/auth-store.ts`** — Auth state store:
+     - `AuthState` interface (user, accessToken, refreshToken, isAuthenticated)
+     - `createAuthStore()` - Create auth state store
+     - Login/logout actions
 
-1. `app/dev-tools/playground/index.tsx` — Query param redirect
-2. `app/dev-tools/playground/_layout.tsx` — Self-contained: imports demos, reads query params, renders demo
-3. `app/dev-tools/playground/[component].tsx` — **DELETED**
-4. `app/_layout.tsx` — Restored clean route definitions
+- [x] 6. **`flux/auth-hooks.ts`** — Auth custom hooks:
+     - `useAuth()` - Get auth state and actions
+     - `useUser()` - Get current user
+     - `useIsAuthenticated()` - Get auth status
+     - `useAuthAction()` - Execute login/register/logout
 
-## Verification
+### Phase 3: Client-Side Storage (storage/)
 
-After fix:
-- Navigate to `/dev-tools/playground` → redirects to `/dev-tools/playground?component=button` → shows Button demo
-- Click "Text" in sidebar → navigates to `/dev-tools/playground?component=text` → shows Text demo
-- Click "Card" in sidebar → navigates to `/dev-tools/playground?component=card` → shows Card demo
-- The demo should appear on the right side container
+- [x] 7. **`lib/token-storage.ts`** — Token persistence:
+     - `saveTokens(accessToken, refreshToken)` - Save to storage
+     - `getTokens()` - Get stored tokens
+     - `clearTokens()` - Clear tokens on logout
+
+### Phase 4: UI Components (ui/)
+
+- [x] 8. **`ui/auth/`]** — Auth UI components:
+     - `login-form.tsx` - Login form with email/password
+     - `register-form.tsx` - Registration form
+     - `protected-route.tsx` - Route guard for protected screens
+     - `auth-context.tsx` - Auth context provider
+
+### Phase 5: Integration
+
+- [x] 9. **API client wrapper** — HTTP client with auth:
+     - `lib/api-client.ts` - Fetch wrapper that automatically:
+       - Attaches Bearer token
+       - Handles 401 (token expired) by refreshing
+       - Returns typed responses
+
+### Files Created
+
+1. [x] `server/utils/jwt.ts` - JWT utilities
+2. [x] `server/utils/password.ts` - Password hashing
+3. [x] `flux/auth-store.ts` - Auth state store
+4. [x] `flux/auth-hooks.ts` - Auth hooks
+5. [x] `lib/token-storage.ts` - Token persistence
+6. [x] `ui/auth/login-form.tsx` - Login form
+7. [x] `ui/auth/register-form.tsx` - Register form
+8. [x] `ui/auth/protected-route.tsx` - Protected route
+9. [x] `ui/auth/auth-context.tsx` - Auth context
+10. [x] `lib/api-client.ts` - API client with auth
+
+### Files Modified
+
+1. [x] `server/auth-routes.ts`
+2. [x] `server/middlewares.ts`
+3. [x] `package.json` (added jose dependency)
+
+## Security Requirements
+
+- Access tokens: Short-lived (15 min)
+- Refresh tokens: Long-lived (7 days), stored securely
+- Passwords: Argon2id hashing
+- HTTPS only in production
+- CSRF protection
+- Rate limiting on auth endpoints
+
+## Usage Examples
+
+### Server (protected route)
+```typescript
+app.use(authRoutes).use(jwtVerifier()).get('/api/protected', ({ user }) => {
+  return { user };
+});
+```
+
+### Client (login)
+```typescript
+const { login } = useAuth();
+await login({ email: 'user@example.com', password: 'password' });
+const user = useUser();
+```
+
+### UI (protected route)
+```tsx
+<ProtectedRoute fallback="/login">
+  <Dashboard />
+</ProtectedRoute>
+```
+
+(End of file - total 137 lines)
