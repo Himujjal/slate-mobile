@@ -7,6 +7,7 @@ import {
   type StackNavigationOptions,
   createStackNavigator,
 } from '@react-navigation/stack';
+import { AuthProvider } from '@ui/auth';
 import { ToastProvider } from '@ui/index';
 import { Colors, ThemeProvider, useThemeColor } from '@ui/theme';
 import { withLayoutContext } from 'expo-router';
@@ -19,7 +20,9 @@ function Routes() {
   return (
     <View style={{ height: '100%', width: '100%' }} id="outermost">
       <JsStack.Screen name="index" options={{ title: 'Slate' }} />
+      <JsStack.Screen name="onboarding" options={{ title: 'Welcome' }} />
       <JsStack.Screen name="login" options={{ title: 'Sign In' }} />
+      <JsStack.Screen name="home" options={{ title: 'Home' }} />
       <JsStack.Screen name="dev-tools" options={{ title: 'Dev Tools' }} />
       <JsStack.Screen
         name="dev-tools/flux-test"
@@ -81,7 +84,9 @@ export default function RootLayout() {
   return (
     <ThemeProvider>
       <ToastProvider>
-        <RootStack />
+        <AuthProvider>
+          <RootStack />
+        </AuthProvider>
       </ToastProvider>
     </ThemeProvider>
   );

@@ -1,0 +1,66 @@
+import { Kysely, SqliteDialect } from 'kysely';
+import type { Database } from './database';
+
+let db: Kysely<Database> | null = null;
+
+export function getDb(): Kysely<Database> {
+  if (!db) {
+    db = new Kysely<Database>({
+      dialect: new SqliteDialect({
+        filename: './slate.db',
+      }),
+    });
+  }
+  return db;
+}
+
+export async function initDb(): Promise<void> {
+  const database = getDb();
+
+  await database.schema
+    .createTable('users')
+    .ifNotExists()
+    .addColumn('id', 'text', (col) => col.primaryKey())
+    .addColumn('email', 'text', (col) => col.notNull().unique())
+    .addColumn('name', 'text', (col) => col.notNull())
+    .addColumn('password_hash', 'text')
+    .addColumn('salt', 'text')
+    .addColumn('google_id', 'text')
+    .addColumn('avatar_url', 'text')
+    .addColumn('created_at', 'integer', (col) => col.notNull())
+    .addColumn('updated_at', 'integer', (col) => col.notNull())
+    .execute();
+
+  await database.schema
+    .createTable('refresh_tokens')
+    .ifNotExists()
+    .addColumn('id', 'integer', (col) =>
+      col.primaryKey({ autoIncrement: true })
+    )
+    .addColumn('user_id', 'text', (col) =>
+      col.notNull().references('users.id', { onDelete: 'cascade' })
+    )
+    .addColumn('token', 'text', (col) => col.notNull().unique())
+    .addColumn('expires_at', 'integer', (col) => col.notNull())
+    .addColumn('created_at', 'integer', (col) => col.notNull())
+    .execute();
+
+  await database.schema
+    .createTable('sessions')
+    .ifNotExists()
+    .addColumn('id', 'text', (col) => col.primaryKey())
+    .addColumn('user_id', 'text', (col) =>
+      col.notNull().references('users.id', { onDelete: 'cascade' })
+    )
+    .addColumn('device_info', 'text')
+    .addColumn('last_active', 'integer', (col) => col.notNull())
+    .addColumn('created_at', 'integer', (col) => col.notNull())
+    .execute();
+}
+
+export async function closeDb(): Promise<void> {
+  if (db) {
+    await db.destroy();
+    db = null;
+  }
+}

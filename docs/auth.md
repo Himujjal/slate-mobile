@@ -22,27 +22,34 @@ Full JWT-based authentication system spanning server (Bun/Elysia) and client (Re
 │  │           Token Storage (@storage/)               │ │
 │  │   MMKV (native) / localStorage (web)             │ │
 │  │   saveTokens / getTokens / clearTokens           │ │
+│  │   onboardingStorage (onboarding status)          │ │
 │  └───────────────────────────────────────────────────┘ │
 │                              │                          │
 │  ┌───────────────────────────▼──────────────────────┐  │
 │  │           API Client (@flux/api-client)           │  │
 │  │   Auto Bearer token injection                    │  │
 │  │   Auto 401 → refresh → retry                     │  │
-│  └───────────────────────────────────────────────────┘  │
+│  └───────────────────────────────────────────────────┘ │
 │                              │                            │
 └──────────────────────────────┼────────────────────────────┘
-                               │ HTTP
+                                │ HTTP
 ┌──────────────────────────────▼────────────────────────────┐
 │                    Server (Bun/Elysia)                     │
 │  ┌──────────────┐  ┌────────────┐  ┌───────────────────┐  │
 │  │ Auth Routes   │  │ Middleware  │  │ Utils             │  │
 │  │ /auth/register│  │ rateLimiter│  │ JWT (jose/HS256)  │  │
-│  │ /auth/login   │  │ authChecker│  │ Password (SHA-256) │  │
-│  │ /auth/refresh │  │ jwtVerifier│  │                    │  │
-│  │ /auth/logout  │  │            │  │                    │  │
-│  │ /auth/me      │  │            │  │                    │  │
+│  │ /auth/login   │  │ authChecker│  │ Password (SHA-256)│  │
+│  │ /auth/refresh │  │ jwtVerifier│  │                   │  │
+│  │ /auth/logout  │  │            │  │                   │  │
+│  │ /auth/me      │  │            │  │                   │  │
+│  │ /auth/google  │  │            │  │                   │  │
 │  └──────────────┘  └────────────┘  └───────────────────┘  │
-└────────────────────────────────────────────────────────────┘
+│                              │                            │
+│  ┌───────────────────────────▼──────────────────────────┐ │
+│  │          Database (SQLite via Kysely)                 │ │
+│  │  tables: users, refresh_tokens, sessions              │ │
+│  └───────────────────────────────────────────────────────┘ │
+└─────────────────────────────────────────────────────────────┘
 ```
 
 ## Client-Side: Flux Auth Store
@@ -81,10 +88,11 @@ interface AuthStateData {
 
 ```typescript
 const {
-  login,      // (email: string, password: string) => Promise<void>
-  register,   // (name: string, email: string, password: string) => Promise<void>
-  logout,     // () => Promise<void>
-  refresh,    // () => Promise<void>
+  login,          // (email: string, password: string) => Promise<void>
+  register,       // (name: string, email: string, password: string) => Promise<void>
+  loginWithGoogle,// (idToken: string) => Promise<void>
+  logout,         // () => Promise<void>
+  refresh,        // () => Promise<void>
 } = useAuth();
 ```
 
@@ -127,6 +135,31 @@ await api.delete('/user/123');
 3. On success: retries the original request with new access token
 4. On failure: clears auth state (force logout)
 
+## Client-Side: Storage
+
+**File:** `storage/index.ts`
+
+### Token Storage
+
+```typescript
+import { tokenStorage } from '@storage/index';
+
+tokenStorage.saveTokens(accessToken, refreshToken);
+const tokens = tokenStorage.getTokens();
+tokenStorage.clearAll();
+const hasAuth = tokenStorage.hasStoredAuth();
+```
+
+### Onboarding Storage
+
+```typescript
+import { onboardingStorage } from '@storage/index';
+
+const hasOnboarded = onboardingStorage.hasOnboarded();
+onboardingStorage.completeOnboarding();
+onboardingStorage.resetOnboarding();
+```
+
 ## Client-Side: UI Components
 
 **Files:** `ui/auth/`
@@ -147,17 +180,17 @@ import { AuthProvider } from '@ui/auth';
 ```typescript
 import { LoginForm } from '@ui/auth';
 
-<LoginForm onSuccess={() => router.replace('/(tabs)')} />
+<LoginForm onSuccess={() => router.replace('/home')} />
 ```
 
-Features: email/password inputs, validation, error display, loading state.
+Features: email/password inputs, validation, error display, loading state, Google sign-in.
 
 ### RegisterForm
 
 ```typescript
 import { RegisterForm } from '@ui/auth';
 
-<RegisterForm onSuccess={() => router.replace('/(tabs)')} />
+<RegisterForm onSuccess={() => router.replace('/home')} />
 ```
 
 Features: name/email/password/confirm inputs, validation, error display.
@@ -174,6 +207,34 @@ import { ProtectedRoute } from '@ui/auth';
 
 Redirects to `/login` (or custom fallback) if not authenticated. Shows loading spinner while checking.
 
+## Client-Side: App Routing
+
+**File:** `app/index.tsx`
+
+The index screen handles initial routing:
+
+1. Check if user has onboarded
+2. If not, redirect to `/onboarding`
+3. Restore stored tokens from tokenStorage
+4. If authenticated, redirect to `/home`
+5. Otherwise, redirect to `/login`
+
+### Onboarding Flow
+
+**File:** `app/onboarding/index.tsx`
+
+- One-time welcome screen
+- Uses `onboardingStorage` to track completion
+- On complete, redirects to login
+
+### Login Flow
+
+**File:** `app/login/index.tsx`
+
+- Email/password authentication
+- Google OAuth authentication
+- On success, redirects to `/home`
+
 ## Server-Side: Auth Routes
 
 **File:** `server/auth-routes.ts`
@@ -188,7 +249,8 @@ Redirects to `/login` (or custom fallback) if not authenticated. Shows loading s
 {
   "user": { "id": "uuid", "name": "Alice", "email": "alice@example.com" },
   "accessToken": "eyJ...",
-  "refreshToken": "eyJ..."
+  "refreshToken": "eyJ...",
+  "expiresIn": 900
 }
 ```
 
@@ -202,7 +264,23 @@ Redirects to `/login` (or custom fallback) if not authenticated. Shows loading s
 {
   "user": { "id": "uuid", "name": "Alice", "email": "alice@example.com" },
   "accessToken": "eyJ...",
-  "refreshToken": "eyJ..."
+  "refreshToken": "eyJ...",
+  "expiresIn": 900
+}
+```
+
+### POST /auth/google
+
+```json
+// Request
+{ "idToken": "eyJ..." }
+
+// Response 200
+{
+  "user": { "id": "uuid", "name": "Alice", "email": "alice@example.com" },
+  "accessToken": "eyJ...",
+  "refreshToken": "eyJ...",
+  "expiresIn": 900
 }
 ```
 
@@ -215,25 +293,39 @@ Redirects to `/login` (or custom fallback) if not authenticated. Shows loading s
 // Response 200
 {
   "accessToken": "eyJ...",
-  "refreshToken": "eyJ..."
+  "refreshToken": "eyJ...",
+  "expiresIn": 900
 }
 ```
 
 ### POST /auth/logout (Protected)
 
 ```json
+// Request
+{ "refreshToken": "eyJ..." }
+
 // Response 200
-{ "message": "Logged out successfully" }
+{ "success": true }
 ```
 
 ### GET /auth/me (Protected)
 
 ```json
 // Response 200
-{ "user": { "id": "uuid", "name": "Alice", "email": "alice@example.com" } }
+{ "id": "uuid", "email": "alice@example.com", "name": "Alice" }
 ```
 
-## Server-Side: JWT Utils
+## Server-Side: Database
+
+**File:** `server/db/setup.ts`
+
+SQLite database using Kysely ORM. Tables:
+
+- **users**: id, email, name, password_hash, salt, google_id, avatar_url, created_at, updated_at
+- **refresh_tokens**: id, user_id, token, expires_at, created_at
+- **sessions**: id, user_id, device_info, last_active, created_at
+
+### JWT Utils
 
 **File:** `server/utils/jwt.ts`
 
@@ -249,7 +341,7 @@ const { accessToken, refreshToken } = await createTokens({
 });
 ```
 
-## Server-Side: Password Utils
+### Password Utils
 
 **File:** `server/utils/password.ts`
 
@@ -276,5 +368,19 @@ const isValid = await verifyPassword(password, storedHash, storedSalt);
 - Passwords are **not stored in plain text** (SHA-256 + salt)
 - JWT secrets should be set via `JWT_SECRET` env var (not hardcoded)
 - Refresh tokens are **single-use**: old ones are invalidated on each refresh
-- In-memory storage is used for users/refresh tokens (no database dependency)
-- For production, replace in-memory store with a proper database (see `server/utils/db-setup.ts`)
+- Tokens stored in SQLite database with user association
+- Token expiry is enforced at the database level
+- Google OAuth uses `id_token` verification via Google's tokeninfo endpoint
+
+## Environment Variables
+
+### Server
+
+- `JWT_SECRET` - JWT access token secret (required)
+- `REFRESH_TOKEN_SECRET` - JWT refresh token secret (required)
+
+### Client
+
+- `EXPO_PUBLIC_API_URL` - Server URL (default: `http://localhost:3000`)
+- `EXPO_PUBLIC_GOOGLE_CLIENT_ID` - Google OAuth client ID
+- `EXPO_PUBLIC_GOOGLE_REDIRECT_URI` - Google OAuth redirect URI

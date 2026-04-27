@@ -8,9 +8,10 @@ import { Colors, Spacing, useThemeColor } from '../theme';
 
 interface LoginFormProps {
   onSuccess?: () => void;
+  onGoogleSignIn?: () => void;
 }
 
-export function LoginForm({ onSuccess }: LoginFormProps) {
+export function LoginForm({ onSuccess, onGoogleSignIn }: LoginFormProps) {
   const { login, isLoading, error } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -56,6 +57,12 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
     }
   };
 
+  const handleGooglePress = () => {
+    if (onGoogleSignIn) {
+      onGoogleSignIn();
+    }
+  };
+
   return (
     <View style={styles.container}>
       <TextInput
@@ -91,6 +98,20 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
           Sign In
         </Button>
       </View>
+
+      <View style={styles.divider}>
+        <View style={styles.dividerLine} />
+        <Text style={styles.dividerText}>or</Text>
+        <View style={styles.dividerLine} />
+      </View>
+
+      <Button
+        onPress={handleGooglePress}
+        variant="outlined"
+        disabled={isLoading}
+      >
+        Continue with Google
+      </Button>
     </View>
   );
 }
@@ -106,6 +127,21 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   buttonContainer: {
-    marginTop: Spacing[4],
+    marginTop: Spacing[2],
+  },
+  divider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: Spacing[4],
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: '#E5E5E5',
+  },
+  dividerText: {
+    paddingHorizontal: Spacing[4],
+    color: '#888',
+    fontSize: 14,
   },
 });

@@ -1,15 +1,31 @@
+import { useRouter } from 'expo-router';
 import type { ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { useIsAuthenticated } from '../../flux/auth-hooks';
+import { useAuthLoading, useIsAuthenticated } from '../../flux/auth-hooks';
 
 interface ProtectedRouteProps {
   children: ReactNode;
+  fallback?: string;
 }
 
-export function ProtectedRoute({ children }: ProtectedRouteProps) {
+export function ProtectedRoute({
+  children,
+  fallback = '/login',
+}: ProtectedRouteProps) {
+  const router = useRouter();
   const isAuthenticated = useIsAuthenticated();
+  const isLoading = useAuthLoading();
+
+  if (isLoading) {
+    return (
+      <View style={styles.container}>
+        <View />
+      </View>
+    );
+  }
 
   if (!isAuthenticated) {
+    router.replace(fallback);
     return (
       <View style={styles.container}>
         <View />

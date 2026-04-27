@@ -54,8 +54,8 @@ async function refreshToken(): Promise<void> {
       }
 
       const data = await response.json();
-      tokenStorage.saveTokens(data.token, data.refreshToken);
-      setAuthTokens(data.token, data.refreshToken);
+      tokenStorage.saveTokens(data.accessToken, data.refreshToken);
+      setAuthTokens(data.accessToken, data.refreshToken);
     } catch {
       tokenStorage.clearAll();
       clearAuth();

@@ -1,146 +1,101 @@
-# Plan for Production-Grade Authentication System
+# Authentication Setup Review & Next Steps
 
-## Problem Analysis
+## Testing Status: 5 PASSED ✓
 
-The current auth system (`server/auth-routes.ts`) uses mock data and has no:
-- JWT token generation/verification
-- Password hashing
-- Token refresh
-- Session management
-- Client-side auth state management
+All server auth tests pass: registration, login, validation, error handling.
 
-## Architecture Overview
+---
 
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                         Client (Expo/React Native)                       │
-├─────────────────────────────────────────────────────────────────────────────┤
-│  ui/                    flux/                    storage/               │
-│  ├── auth-form.tsx      ├── auth-store.ts        └── token-storage.ts   │
-│  ├── login-form.tsx    └── use-auth.tsx                              │
-│  ├── protected-route.tsx                                              │
-└─────────────────────────────────────────────────────────────────────────────┘
-                                    │
-                                    ▼ HTTP + JWT
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                              Server (Elysia.js)                        │
-├─────────────────────────────────────────────────────────────────────────────┤
-│  server/                                                              │
-│  ├── auth-routes.ts    (login, register, logout, refresh, me)         │
-│  ├── middlewares.ts    (jwt-verify, auth-checker)                       │
-│  └── utils/           (jwt, password-hash)                            │
-└─────────────────────────────────────────────────────────────────────────────┘
-```
+## Security Issues Identified
 
-## Implementation Plan
+### Critical Issues
 
-### Phase 1: Server-Side Auth (server/)
+1. **Weak Password Hashing** (`server/utils/password.ts`)
+   - Uses basic SHA-256 without proper salting in a KDF
+   - No memory/strain cost - vulnerable to brute-force
+   - Should use bcrypt, argon2, or scrypt
 
-- [x] 1. **`server/utils/jwt.ts`** — JWT utilities:
-     - `signToken(payload, expiresIn)` - Create signed JWT
-     - `verifyToken(token)` - Verify and decode JWT
-     - `createTokens(user)` - Create access + refresh token pair
+2. **Missing Email Validation** (`server/auth-routes.ts:130`)
+   - Only uses Elysia's built-in `{ format: 'email' }` which is weak
+   - Accepts any string labeled as email - no real format validation
 
-- [x] 2. **`server/utils/password.ts`** — Password hashing:
-     - `hashPassword(password)` - Argon2id hash
-     - `verifyPassword(password, hash)` - Verify password
+3. **No Account Lockout** 
+   - Failed login attempts don't trigger lockout
+   - Vulnerable to brute-force attacks
 
-- [x] 3. **`server/auth-routes.ts`** — Full auth routes:
-     - `POST /auth/login` - Verify credentials, return tokens
-     - `POST /auth/register` - Create user, return tokens
-     - `POST /auth/refresh` - Refresh access token
-     - `POST /auth/logout` - Invalidate refresh token
-     - `GET /auth/me` - Get current user (protected)
+4. **Missing Rate Limiting on Auth Routes** (`server/middlewares.ts:20`)
+   - Rate limiter only applies to `/api/llm`, not auth endpoints
+   - Register/login vulnerable to abuse
 
-- [x] 4. **`server/middlewares.ts`** — Auth middleware:
-     - `jwtVerifier()` - Verify JWT on protected routes
-     - Update `authChecker` to extract user from token
+### Medium Issues
 
-### Phase 2: Client-Side Auth State (flux/)
+5. **Token Rotation Not Implemented**
+   - Refresh endpoint deletes old token but creates new one only
+   - Should implement sliding window rotation
 
-- [x] 5. **`flux/auth-store.ts`** — Auth state store:
-     - `AuthState` interface (user, accessToken, refreshToken, isAuthenticated)
-     - `createAuthStore()` - Create auth state store
-     - Login/logout actions
+6. **Missing CSRF Protection**
+   - No CSRF tokens for state-changing operations
 
-- [x] 6. **`flux/auth-hooks.ts`** — Auth custom hooks:
-     - `useAuth()` - Get auth state and actions
-     - `useUser()` - Get current user
-     - `useIsAuthenticated()` - Get auth status
-     - `useAuthAction()` - Execute login/register/logout
+7. **JWT Algorithm Not Explicitly Set**
+   - Relies on jose default (should explicitly set HS256 in header)
 
-### Phase 3: Client-Side Storage (storage/)
+8. **No Logging of Auth Events**
+   - Failed login attempts not logged
+   - Hard to detect attacks
 
-- [x] 7. **`lib/token-storage.ts`** — Token persistence:
-     - `saveTokens(accessToken, refreshToken)` - Save to storage
-     - `getTokens()` - Get stored tokens
-     - `clearTokens()` - Clear tokens on logout
+### Low Issues
 
-### Phase 4: UI Components (ui/)
+9. **Google OAuth Token Validation**
+   - No verification that the token is intended for this app
+   - Missing `audience` check on Google token
 
-- [x] 8. **`ui/auth/`]** — Auth UI components:
-     - `login-form.tsx` - Login form with email/password
-     - `register-form.tsx` - Registration form
-     - `protected-route.tsx` - Route guard for protected screens
-     - `auth-context.tsx` - Auth context provider
+10. **Missing Input Sanitization**
+    - Email/name not sanitized for XSS in stored data
 
-### Phase 5: Integration
+---
 
-- [x] 9. **API client wrapper** — HTTP client with auth:
-     - `lib/api-client.ts` - Fetch wrapper that automatically:
-       - Attaches Bearer token
-       - Handles 401 (token expired) by refreshing
-       - Returns typed responses
+## Recommended Test Cases
 
-### Files Created
+### Security Tests
 
-1. [x] `server/utils/jwt.ts` - JWT utilities
-2. [x] `server/utils/password.ts` - Password hashing
-3. [x] `flux/auth-store.ts` - Auth state store
-4. [x] `flux/auth-hooks.ts` - Auth hooks
-5. [x] `lib/token-storage.ts` - Token persistence
-6. [x] `ui/auth/login-form.tsx` - Login form
-7. [x] `ui/auth/register-form.tsx` - Register form
-8. [x] `ui/auth/protected-route.tsx` - Protected route
-9. [x] `ui/auth/auth-context.tsx` - Auth context
-10. [x] `lib/api-client.ts` - API client with auth
+- [ ] Password min length enforcement (min 8, recommend 12+)
+- [ ] SQL injection via email field
+- [ ] XSS via name field
+- [ ] Rate limiting on login/register
+- [ ] Account lockout after N attempts
+- [ ] Token replay prevention
+- [ ] Expired refresh token handling
+- [ ] Invalid token types (access token used as refresh)
+- [ ] Case sensitivity in email comparison
+- [ ] Duplicate registration race condition
 
-### Files Modified
+### Edge Cases
 
-1. [x] `server/auth-routes.ts`
-2. [x] `server/middlewares.ts`
-3. [x] `package.json` (added jose dependency)
+- [ ] Empty password
+- [ ] Password with only spaces
+- [ ] Very long passwords (DoS)
+- [ ] Unicode in passwords
+- [ ] Duplicate Google accounts
+- [ ] Concurrent logout + refresh
 
-## Security Requirements
+---
 
-- Access tokens: Short-lived (15 min)
-- Refresh tokens: Long-lived (7 days), stored securely
-- Passwords: Argon2id hashing
-- HTTPS only in production
-- CSRF protection
-- Rate limiting on auth endpoints
+## Testing Commands
 
-## Usage Examples
-
-### Server (protected route)
-```typescript
-app.use(authRoutes).use(jwtVerifier()).get('/api/protected', ({ user }) => {
-  return { user };
-});
+```bash
+bun test           # All tests
+bun test:server    # Server tests only
+bun test --watch   # Watch mode
 ```
 
-### Client (login)
-```typescript
-const { login } = useAuth();
-await login({ email: 'user@example.com', password: 'password' });
-const user = useUser();
-```
+---
 
-### UI (protected route)
-```tsx
-<ProtectedRoute fallback="/login">
-  <Dashboard />
-</ProtectedRoute>
-```
+## Files Tested/Changed
 
-(End of file - total 137 lines)
+### Test Files Created
+- `test/server/auth.test.ts` - Server auth tests
+- `happydom.ts` - DOM setup for client tests
+
+### Configuration
+- `bunfig.toml` - Test configuration
+- `package.json` - Added test scripts

@@ -1,7 +1,7 @@
-import type { Observable } from '@legendapp/state';
-import { useValue } from '@legendapp/state/react';
+import { useValue } from '@legendapp-state/react';
+import type { AuthUser } from '../../flux/auth-store';
+import { tokenStorage } from '../storage/token-storage';
 import {
-  type AuthUser,
   authState$,
   clearAuth,
   setAuthError,
@@ -21,8 +21,12 @@ interface RegisterCredentials {
   name: string;
 }
 
+interface GoogleCredentials {
+  idToken: string;
+}
+
 interface AuthResponse {
-  token: string;
+  accessToken: string;
   refreshToken: string;
   user: AuthUser;
   expiresIn: number;
@@ -30,14 +34,11 @@ interface AuthResponse {
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000';
 
-async function fetchAuth(
-  endpoint: string,
-  data: LoginCredentials | RegisterCredentials
-): Promise<AuthResponse> {
+async function fetchAuth<T>(endpoint: string, data?: unknown): Promise<T> {
   const response = await fetch(`${API_BASE_URL}/auth/${endpoint}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data),
+    body: data ? JSON.stringify(data) : undefined,
   });
 
   if (!response.ok) {
@@ -59,6 +60,7 @@ export function useAuth(): {
   error: string | null;
   login: (credentials: LoginCredentials) => Promise<void>;
   register: (credentials: RegisterCredentials) => Promise<void>;
+  loginWithGoogle: (credentials: GoogleCredentials) => Promise<void>;
   logout: () => Promise<void>;
   refresh: () => Promise<void>;
 } {
@@ -73,9 +75,11 @@ export function useAuth(): {
     setAuthLoading(true);
     setAuthError(null);
     try {
-      const response = await fetchAuth('login', credentials);
-      setAuthTokens(response.token, response.refreshToken);
+      const response = await fetchAuth<AuthResponse>('login', credentials);
+      setAuthTokens(response.accessToken, response.refreshToken);
       setAuthUser(response.user);
+      tokenStorage.saveTokens(response.accessToken, response.refreshToken);
+      tokenStorage.saveUser(response.user);
     } catch (e) {
       setAuthError(e instanceof Error ? e.message : 'Login failed');
       throw e;
@@ -88,9 +92,11 @@ export function useAuth(): {
     setAuthLoading(true);
     setAuthError(null);
     try {
-      const response = await fetchAuth('register', credentials);
-      setAuthTokens(response.token, response.refreshToken);
+      const response = await fetchAuth<AuthResponse>('register', credentials);
+      setAuthTokens(response.accessToken, response.refreshToken);
       setAuthUser(response.user);
+      tokenStorage.saveTokens(response.accessToken, response.refreshToken);
+      tokenStorage.saveUser(response.user);
     } catch (e) {
       setAuthError(e instanceof Error ? e.message : 'Registration failed');
       throw e;
@@ -99,37 +105,58 @@ export function useAuth(): {
     }
   };
 
+  const loginWithGoogle = async (credentials: GoogleCredentials) => {
+    setAuthLoading(true);
+    setAuthError(null);
+    try {
+      const response = await fetchAuth<AuthResponse>('google', credentials);
+      setAuthTokens(response.accessToken, response.refreshToken);
+      setAuthUser(response.user);
+      tokenStorage.saveTokens(response.accessToken, response.refreshToken);
+      tokenStorage.saveUser(response.user);
+    } catch (e) {
+      setAuthError(e instanceof Error ? e.message : 'Google sign in failed');
+      throw e;
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
   const logout = async () => {
-    const refreshToken = authState$.refreshToken.peek();
+    const refreshTokenVal = authState$.refreshToken.peek();
     try {
       await fetch(`${API_BASE_URL}/auth/logout`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ refreshToken }),
+        body: JSON.stringify({ refreshToken: refreshTokenVal }),
       });
     } catch {
     } finally {
+      tokenStorage.clearAll();
       clearAuth();
     }
   };
 
   const refresh = async () => {
-    const refreshToken = authState$.refreshToken.peek();
-    if (!refreshToken) return;
+    const refreshTokenVal = authState$.refreshToken.peek();
+    if (!refreshTokenVal) return;
 
     try {
       const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ refreshToken }),
+        body: JSON.stringify({ refreshToken: refreshTokenVal }),
       });
       if (response.ok) {
         const data = await response.json();
-        setAuthTokens(data.token, data.refreshToken);
+        setAuthTokens(data.accessToken, data.refreshToken);
+        tokenStorage.saveTokens(data.accessToken, data.refreshToken);
       } else {
+        tokenStorage.clearAll();
         clearAuth();
       }
     } catch {
+      tokenStorage.clearAll();
       clearAuth();
     }
   };
@@ -143,6 +170,7 @@ export function useAuth(): {
     error,
     login,
     register,
+    loginWithGoogle,
     logout,
     refresh,
   };
