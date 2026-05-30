@@ -84,7 +84,8 @@ describe('kv', () => {
     it('should handle arrays', () => {
       const arr = [1, 'two', { three: 3 }];
       kv.setObject('arr', arr);
-      const result = kv.getObject<(string | number | { three: number })[]>('arr');
+      const result =
+        kv.getObject<(string | number | { three: number })[]>('arr');
       expect(result).toEqual(arr);
     });
   });

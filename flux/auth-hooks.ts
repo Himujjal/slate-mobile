@@ -1,6 +1,6 @@
-import { useValue } from '@legendapp-state/react';
-import type { AuthUser } from '../../flux/auth-store';
+import { useValue } from '@legendapp/state/react';
 import { tokenStorage } from '../storage/token-storage';
+import type { AuthUser } from './auth-store';
 import {
   authState$,
   clearAuth,

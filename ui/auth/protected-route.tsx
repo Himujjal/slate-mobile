@@ -1,16 +1,16 @@
-import { useRouter } from 'expo-router';
+import { type Href, useRouter } from 'expo-router';
 import type { ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useAuthLoading, useIsAuthenticated } from '../../flux/auth-hooks';
 
 interface ProtectedRouteProps {
   children: ReactNode;
-  fallback?: string;
+  fallback?: Href;
 }
 
 export function ProtectedRoute({
   children,
-  fallback = '/login',
+  fallback = '/login' as Href,
 }: ProtectedRouteProps) {
   const router = useRouter();
   const isAuthenticated = useIsAuthenticated();

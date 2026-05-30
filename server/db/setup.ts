@@ -1,3 +1,4 @@
+import { Database as BunDatabase } from 'bun:sqlite';
 import { Kysely, SqliteDialect } from 'kysely';
 import type { Database } from './database';
 
@@ -7,7 +8,8 @@ export function getDb(): Kysely<Database> {
   if (!db) {
     db = new Kysely<Database>({
       dialect: new SqliteDialect({
-        filename: './slate.db',
+        // biome-ignore lint/suspicious/noExplicitAny: bun:sqlite is runtime-compatible with Kysely's SqliteDatabase interface
+        database: new BunDatabase('./slate.db') as any,
       }),
     });
   }
@@ -34,11 +36,9 @@ export async function initDb(): Promise<void> {
   await database.schema
     .createTable('refresh_tokens')
     .ifNotExists()
-    .addColumn('id', 'integer', (col) =>
-      col.primaryKey({ autoIncrement: true })
-    )
+    .addColumn('id', 'integer', (col) => col.autoIncrement().primaryKey())
     .addColumn('user_id', 'text', (col) =>
-      col.notNull().references('users.id', { onDelete: 'cascade' })
+      col.notNull().references('users.id').onDelete('cascade')
     )
     .addColumn('token', 'text', (col) => col.notNull().unique())
     .addColumn('expires_at', 'integer', (col) => col.notNull())
@@ -50,7 +50,7 @@ export async function initDb(): Promise<void> {
     .ifNotExists()
     .addColumn('id', 'text', (col) => col.primaryKey())
     .addColumn('user_id', 'text', (col) =>
-      col.notNull().references('users.id', { onDelete: 'cascade' })
+      col.notNull().references('users.id').onDelete('cascade')
     )
     .addColumn('device_info', 'text')
     .addColumn('last_active', 'integer', (col) => col.notNull())
