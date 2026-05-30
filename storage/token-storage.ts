@@ -1,5 +1,10 @@
-import type { AuthUser } from '../flux/auth-store';
 import { kv } from './kv';
+
+export interface StoredUser {
+  id: string;
+  email: string;
+  name: string;
+}
 
 const ACCESS_TOKEN_KEY = 'auth_access_token';
 const REFRESH_TOKEN_KEY = 'auth_refresh_token';
@@ -23,12 +28,12 @@ export const tokenStorage = {
     kv.remove(REFRESH_TOKEN_KEY);
   },
 
-  saveUser(user: AuthUser): void {
+  saveUser(user: StoredUser): void {
     kv.setObject(USER_KEY, user);
   },
 
-  getUser(): AuthUser | null {
-    return kv.getObject<AuthUser>(USER_KEY) ?? null;
+  getUser(): StoredUser | null {
+    return kv.getObject<StoredUser>(USER_KEY) ?? null;
   },
 
   clearUser(): void {
