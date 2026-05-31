@@ -1,4 +1,4 @@
-import { tokenStorage } from '../storage/token-storage';
+import { kv } from '../storage';
 import {
   authState$,
   clearAuth,
@@ -34,8 +34,9 @@ async function refreshToken(): Promise<void> {
 
   isRefreshing = true;
   refreshPromise = (async () => {
-    const tokens = tokenStorage.getTokens();
-    if (!tokens) {
+    const storedAccessToken = kv.getString('auth_access_token');
+    const storedRefreshToken = kv.getString('auth_refresh_token');
+    if (!storedAccessToken || !storedRefreshToken) {
       clearAuth();
       throw new ApiError('No refresh token', 401, 'NO_REFRESH_TOKEN');
     }
@@ -44,20 +45,25 @@ async function refreshToken(): Promise<void> {
       const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ refreshToken: tokens.refreshToken }),
+        body: JSON.stringify({ refreshToken: storedRefreshToken }),
       });
 
       if (!response.ok) {
-        tokenStorage.clearAll();
+        kv.remove('auth_access_token');
+        kv.remove('auth_refresh_token');
+        kv.remove('auth_user');
         clearAuth();
         throw new ApiError('Refresh failed', 401, 'REFRESH_FAILED');
       }
 
       const data = await response.json();
-      tokenStorage.saveTokens(data.accessToken, data.refreshToken);
+      kv.setString('auth_access_token', data.accessToken);
+      kv.setString('auth_refresh_token', data.refreshToken);
       setAuthTokens(data.accessToken, data.refreshToken);
     } catch {
-      tokenStorage.clearAll();
+      kv.remove('auth_access_token');
+      kv.remove('auth_refresh_token');
+      kv.remove('auth_user');
       clearAuth();
       throw new ApiError('Refresh failed', 401, 'REFRESH_FAILED');
     } finally {
@@ -119,10 +125,14 @@ export async function apiClient<T>(
   };
 
   if (authenticated && !accessToken) {
-    const storedTokens = tokenStorage.getTokens();
-    if (storedTokens) {
-      accessToken = storedTokens.accessToken;
-      const storedUser = tokenStorage.getUser();
+    const storedAccessToken = kv.getString('auth_access_token');
+    if (storedAccessToken) {
+      accessToken = storedAccessToken;
+      const storedUser = kv.getObject<{
+        id: string;
+        email: string;
+        name: string;
+      }>('auth_user');
       if (storedUser) {
         setAuthUser(storedUser);
       }

@@ -1,4 +1,4 @@
-import { onboardingStorage } from '@storage/index';
+import { kv } from '@storage/index';
 import { Button } from '@ui/button/button';
 import { Text } from '@ui/text/text';
 import { Colors, Spacing, useThemeColor } from '@ui/theme';
@@ -13,12 +13,12 @@ export default function OnboardingScreen() {
   });
 
   const handleGetStarted = () => {
-    onboardingStorage.completeOnboarding();
+    kv.setBoolean('onboarding_completed', true);
     router.replace('/login');
   };
 
   const handleSkip = () => {
-    onboardingStorage.completeOnboarding();
+    kv.setBoolean('onboarding_completed', true);
     router.replace('/login');
   };
 

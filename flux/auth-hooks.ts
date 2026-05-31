@@ -1,5 +1,5 @@
 import { useValue } from '@legendapp/state/react';
-import { tokenStorage } from '../storage/token-storage';
+import { kv } from '../storage';
 import type { AuthUser } from './auth-store';
 import {
   authState$,
@@ -78,8 +78,9 @@ export function useAuth(): {
       const response = await fetchAuth<AuthResponse>('login', credentials);
       setAuthTokens(response.accessToken, response.refreshToken);
       setAuthUser(response.user);
-      tokenStorage.saveTokens(response.accessToken, response.refreshToken);
-      tokenStorage.saveUser(response.user);
+      kv.setString('auth_access_token', response.accessToken);
+      kv.setString('auth_refresh_token', response.refreshToken);
+      kv.setObject('auth_user', response.user);
     } catch (e) {
       setAuthError(e instanceof Error ? e.message : 'Login failed');
       throw e;
@@ -95,8 +96,9 @@ export function useAuth(): {
       const response = await fetchAuth<AuthResponse>('register', credentials);
       setAuthTokens(response.accessToken, response.refreshToken);
       setAuthUser(response.user);
-      tokenStorage.saveTokens(response.accessToken, response.refreshToken);
-      tokenStorage.saveUser(response.user);
+      kv.setString('auth_access_token', response.accessToken);
+      kv.setString('auth_refresh_token', response.refreshToken);
+      kv.setObject('auth_user', response.user);
     } catch (e) {
       setAuthError(e instanceof Error ? e.message : 'Registration failed');
       throw e;
@@ -112,8 +114,9 @@ export function useAuth(): {
       const response = await fetchAuth<AuthResponse>('google', credentials);
       setAuthTokens(response.accessToken, response.refreshToken);
       setAuthUser(response.user);
-      tokenStorage.saveTokens(response.accessToken, response.refreshToken);
-      tokenStorage.saveUser(response.user);
+      kv.setString('auth_access_token', response.accessToken);
+      kv.setString('auth_refresh_token', response.refreshToken);
+      kv.setObject('auth_user', response.user);
     } catch (e) {
       setAuthError(e instanceof Error ? e.message : 'Google sign in failed');
       throw e;
@@ -132,7 +135,9 @@ export function useAuth(): {
       });
     } catch {
     } finally {
-      tokenStorage.clearAll();
+      kv.remove('auth_access_token');
+      kv.remove('auth_refresh_token');
+      kv.remove('auth_user');
       clearAuth();
     }
   };
@@ -150,13 +155,18 @@ export function useAuth(): {
       if (response.ok) {
         const data = await response.json();
         setAuthTokens(data.accessToken, data.refreshToken);
-        tokenStorage.saveTokens(data.accessToken, data.refreshToken);
+        kv.setString('auth_access_token', data.accessToken);
+        kv.setString('auth_refresh_token', data.refreshToken);
       } else {
-        tokenStorage.clearAll();
+        kv.remove('auth_access_token');
+        kv.remove('auth_refresh_token');
+        kv.remove('auth_user');
         clearAuth();
       }
     } catch {
-      tokenStorage.clearAll();
+      kv.remove('auth_access_token');
+      kv.remove('auth_refresh_token');
+      kv.remove('auth_user');
       clearAuth();
     }
   };

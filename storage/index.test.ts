@@ -3,11 +3,9 @@ import {
   MemoryKvAdapter,
   MemoryTableAdapter,
   kv,
-  onboardingStorage,
   setKvAdapter,
   setTableAdapter,
   table,
-  tokenStorage,
 } from './index';
 
 describe('storage index - barrel exports', () => {
@@ -21,23 +19,9 @@ describe('storage index - barrel exports', () => {
     expect(kv.getString('k')).toBe('v');
   });
 
-  it('should export tokenStorage', () => {
-    tokenStorage.saveTokens('a', 'b');
-    expect(tokenStorage.getTokens()).toEqual({
-      accessToken: 'a',
-      refreshToken: 'b',
-    });
-  });
-
   it('should export table with all methods', () => {
     table.insert('todos', { id: '1', title: 'test' });
     expect(table.findAll('todos')).toEqual([{ id: '1', title: 'test' }]);
-  });
-
-  it('should export onboardingStorage', () => {
-    expect(onboardingStorage.hasOnboarded()).toBe(false);
-    onboardingStorage.completeOnboarding();
-    expect(onboardingStorage.hasOnboarded()).toBe(true);
   });
 
   it('should export adapter management functions', () => {
