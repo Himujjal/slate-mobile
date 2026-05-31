@@ -1,7 +1,7 @@
+import { useAuthLoading, useIsAuthenticated } from '@flux';
 import { type Href, useRouter } from 'expo-router';
 import type { ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { useAuthLoading, useIsAuthenticated } from '../../flux/auth-hooks';
 
 interface ProtectedRouteProps {
   children: ReactNode;

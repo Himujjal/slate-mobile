@@ -2,7 +2,6 @@ import { beforeEach, describe, expect, it } from 'bun:test';
 import {
   authState$,
   clearAuth,
-  initializeAuth,
   setAuthError,
   setAuthLoading,
   setAuthTokens,
@@ -81,25 +80,16 @@ describe('auth-store', () => {
     });
   });
 
-  describe('initializeAuth', () => {
-    it('should initialize with tokens and user', () => {
+  describe('authState$ auto-persistence', () => {
+    it('should auto-hydrate from KV storage', () => {
       const user = makeUser();
-      initializeAuth('access-init', 'refresh-init', user);
+      setAuthTokens('access-hydrate', 'refresh-hydrate');
+      setAuthUser(user);
 
-      expect(authState$.accessToken.peek()).toBe('access-init');
-      expect(authState$.refreshToken.peek()).toBe('refresh-init');
+      expect(authState$.accessToken.peek()).toBe('access-hydrate');
+      expect(authState$.refreshToken.peek()).toBe('refresh-hydrate');
       expect(authState$.user.peek()).toEqual(user);
       expect(authState$.isAuthenticated.peek()).toBe(true);
-    });
-
-    it('should set not authenticated when tokens are null', () => {
-      initializeAuth(null, null, null);
-      expect(authState$.isAuthenticated.peek()).toBe(false);
-    });
-
-    it('should set not authenticated when user is null', () => {
-      initializeAuth('token', 'refresh', null);
-      expect(authState$.isAuthenticated.peek()).toBe(false);
     });
   });
 

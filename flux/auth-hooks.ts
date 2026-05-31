@@ -1,5 +1,5 @@
 import { useValue } from '@legendapp/state/react';
-import { kv } from '../storage';
+import { api } from './api-client';
 import type { AuthUser } from './auth-store';
 import {
   authState$,
@@ -23,31 +23,9 @@ interface AuthResponse {
   expiresIn: number;
 }
 
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000';
-
-async function fetchAuth<T>(endpoint: string, data?: unknown): Promise<T> {
-  const response = await fetch(`${API_BASE_URL}/auth/${endpoint}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: data ? JSON.stringify(data) : undefined,
-  });
-
-  if (!response.ok) {
-    const error = await response
-      .json()
-      .catch(() => ({ error: 'Request failed' }));
-    throw new Error(error.error || 'Request failed');
-  }
-
-  return response.json();
-}
-
 function handleAuthSuccess(response: AuthResponse) {
   setAuthTokens(response.accessToken, response.refreshToken);
   setAuthUser(response.user);
-  kv.setString('auth_access_token', response.accessToken);
-  kv.setString('auth_refresh_token', response.refreshToken);
-  kv.setObject('auth_user', response.user);
 }
 
 export function useAuth() {
@@ -62,10 +40,11 @@ export function useAuth() {
     setAuthLoading(true);
     setAuthError(null);
     try {
-      const response = await fetchAuth<OtpRequestResponse>('otp/request', {
-        method: 'email',
-        email,
-      });
+      const response = await api.post<OtpRequestResponse>(
+        '/auth/otp/request',
+        { method: 'email', email },
+        { authenticated: false }
+      );
       return response;
     } catch (e) {
       setAuthError(e instanceof Error ? e.message : 'OTP request failed');
@@ -79,11 +58,11 @@ export function useAuth() {
     setAuthLoading(true);
     setAuthError(null);
     try {
-      const response = await fetchAuth<AuthResponse>('otp/verify', {
-        method: 'email',
-        email,
-        otp,
-      });
+      const response = await api.post<AuthResponse>(
+        '/auth/otp/verify',
+        { method: 'email', email, otp },
+        { authenticated: false }
+      );
       handleAuthSuccess(response);
     } catch (e) {
       setAuthError(e instanceof Error ? e.message : 'OTP verification failed');
@@ -97,10 +76,11 @@ export function useAuth() {
     setAuthLoading(true);
     setAuthError(null);
     try {
-      const response = await fetchAuth<OtpRequestResponse>('otp/request', {
-        method: 'mobile',
-        phone,
-      });
+      const response = await api.post<OtpRequestResponse>(
+        '/auth/otp/request',
+        { method: 'mobile', phone },
+        { authenticated: false }
+      );
       return response;
     } catch (e) {
       setAuthError(e instanceof Error ? e.message : 'OTP request failed');
@@ -114,11 +94,11 @@ export function useAuth() {
     setAuthLoading(true);
     setAuthError(null);
     try {
-      const response = await fetchAuth<AuthResponse>('otp/verify', {
-        method: 'mobile',
-        phone,
-        otp,
-      });
+      const response = await api.post<AuthResponse>(
+        '/auth/otp/verify',
+        { method: 'mobile', phone, otp },
+        { authenticated: false }
+      );
       handleAuthSuccess(response);
     } catch (e) {
       setAuthError(e instanceof Error ? e.message : 'OTP verification failed');
@@ -128,13 +108,15 @@ export function useAuth() {
     }
   };
 
-  const loginWithApple = async (_idToken: string) => {
+  const loginWithApple = async (idToken: string) => {
     setAuthLoading(true);
     setAuthError(null);
     try {
-      const response = await fetchAuth<AuthResponse>('apple', {
-        idToken: _idToken,
-      });
+      const response = await api.post<AuthResponse>(
+        '/auth/apple',
+        { idToken },
+        { authenticated: false }
+      );
       handleAuthSuccess(response);
     } catch (e) {
       setAuthError(e instanceof Error ? e.message : 'Apple sign in failed');
@@ -147,46 +129,14 @@ export function useAuth() {
   const logout = async () => {
     const refreshTokenVal = authState$.refreshToken.peek();
     try {
-      await fetch(`${API_BASE_URL}/auth/logout`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ refreshToken: refreshTokenVal }),
-      });
+      await api.post(
+        '/auth/logout',
+        { refreshToken: refreshTokenVal },
+        { authenticated: false }
+      );
     } catch {
       // Ignore network errors during logout
     } finally {
-      kv.remove('auth_access_token');
-      kv.remove('auth_refresh_token');
-      kv.remove('auth_user');
-      clearAuth();
-    }
-  };
-
-  const refresh = async () => {
-    const refreshTokenVal = authState$.refreshToken.peek();
-    if (!refreshTokenVal) return;
-
-    try {
-      const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ refreshToken: refreshTokenVal }),
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setAuthTokens(data.accessToken, data.refreshToken);
-        kv.setString('auth_access_token', data.accessToken);
-        kv.setString('auth_refresh_token', data.refreshToken);
-      } else {
-        kv.remove('auth_access_token');
-        kv.remove('auth_refresh_token');
-        kv.remove('auth_user');
-        clearAuth();
-      }
-    } catch {
-      kv.remove('auth_access_token');
-      kv.remove('auth_refresh_token');
-      kv.remove('auth_user');
       clearAuth();
     }
   };
@@ -204,7 +154,6 @@ export function useAuth() {
     verifyMobileOtp,
     loginWithApple,
     logout,
-    refresh,
   };
 }
 
@@ -222,13 +171,4 @@ export function useAuthLoading(): boolean {
 
 export function useAuthError(): string | null {
   return useValue(authState$.error) as string | null;
-}
-
-export function initializeAuthState() {
-  return {
-    setAuthTokens,
-    setAuthUser,
-    clearAuth,
-    authState$,
-  };
 }

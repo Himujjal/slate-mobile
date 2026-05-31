@@ -4,7 +4,7 @@ import {
   observer,
   useFluxComputed,
   useFluxValue,
-} from '@flux/index';
+} from '@flux';
 import { Text, TextInput } from '@ui/index';
 /**
  * This is an AI generated test for checking the different variants of hte flux library

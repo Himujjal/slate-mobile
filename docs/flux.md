@@ -307,7 +307,8 @@ const data = await apiClient<MyType>('/custom-endpoint', {
 | `flux/actions.ts` | `createAction`, `createBatchAction`, `batch` |
 | `flux/hooks.ts` | `useFluxValue`, `useFluxObservable`, `useFluxComputed` |
 | `flux/persistence.ts` | `createSqlitePersistence` (placeholder) |
-| `flux/auth-store.ts` | `AuthStateData`, `setAuthTokens`, `setAuthUser`, `setAuthLoading`, `setAuthError`, `clearAuth`, `initializeAuth` |
+| `flux/auth-store.ts` | `AuthStateData`, `authState$`, `setAuthTokens`, `setAuthUser`, `setAuthLoading`, `setAuthError`, `clearAuth` |
+| `flux/sync.ts` | `createSyncedStore`, `SyncedStoreConfig` |
 | `flux/auth-hooks.ts` | `useAuth`, `useUser`, `useIsAuthenticated`, `useAuthLoading`, `useAuthError` |
 | `flux/api-client.ts` | `apiClient`, `api`, `ApiError` |
 | `flux/index.ts` | Barrel re-export of all above + `observable`, `batch` from legend-state |

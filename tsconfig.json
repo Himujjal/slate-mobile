@@ -7,8 +7,10 @@
       "@app/*": ["./app/*"],
       "@hooks/*": ["./hooks/*"],
       "@constants/*": ["./constants/*"],
+      "@flux": ["./flux/index"],
       "@flux/*": ["./flux/*"],
       "@scripts/*": ["./scripts/*"],
+      "@storage": ["./storage/index"],
       "@storage/*": ["./storage/*"]
     }
   },

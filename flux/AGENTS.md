@@ -1,6 +1,14 @@
 # Flux - Agent Guidelines
 
-Flux is a state management library wrapping Legend-State with typed utilities.
+Flux is the infrastructure layer that handles **state, persistence, auth, and sync** all in one.
+The app layer simply defines stores and uses hooks — it never worries about tokens, KV writes,
+or server communication.
+
+- **State**: Legend-State observables with typed store creators
+- **Persistence**: Automatic local persistence via `ObservablePersistFlux` (KV-backed)
+- **Auth**: Built-in auth state, token management, and OTP/Apple login hooks
+- **API Client**: Authenticated HTTP client with automatic 401 → refresh → retry
+- **Sync**: (planned) Remote sync engine on top of Legend-State's sync plugins
 
 ## Core Concepts
 
@@ -57,21 +65,54 @@ const Component = observer(() => {
 
 ```
 flux/
-├── state.ts       # Store creators
-├── actions.ts    # Action helpers
-├── hooks.ts      # React hooks
-├── persistence.ts # SQLite persistence
-└── index.ts      # Barrel export
+├── state.ts         # Store creators (createFluxStore, createKvStore, createTabularStore, createFluxAtom)
+├── actions.ts       # Action helpers (createAction, createBatchAction)
+├── hooks.ts         # React hooks (useFluxValue, useFluxObservable, observer)
+├── persistence.ts   # ObservablePersistFlux — auto-persists stores to KV storage
+├── auth-store.ts    # Auth state observable (user, tokens, loading, error)
+├── auth-hooks.ts    # Auth React hooks (useAuth, useUser, useIsAuthenticated) + API logic
+├── api-client.ts    # Authenticated HTTP client with auto 401 → refresh → retry
+└── index.ts         # Barrel export
 ```
 
-## Pattern
+## Patterns
 
-Flux is a **library** - define app state in `app/` directory:
+### Auth (flux provides the primitives)
+
+Auth state, hooks, and API client are **flux-level primitives** — the app just uses them:
 
 ```typescript
-// app/state.ts
+import { useAuth, useUser } from '@flux';
+import { api } from '@flux/api-client';
+
+function ProfileScreen() {
+  const { user, logout } = useAuth();
+  // No token management, no KV writes, no refresh logic needed.
+}
+```
+
+### App state (defined in app/)
+
+App-specific data stores are defined in `app/state/` using flux store creators.
+Give them a `name` for automatic persistence:
+
+```typescript
+// app/state/settings.store.ts
 import { createKvStore } from '@flux';
 
-export const appState$ = createKvStore<{ user: string | null }>({
-  initial: { user: null },
+export const settings$ = createKvStore<{ theme: 'light' | 'dark' }>({
+  initial: { theme: 'light' },
+  name: 'settings',  // auto-persists to KV — no manual save/load
 });
+```
+
+### Data fetching (use the API client)
+
+The `api` client handles auth tokens and 401 refresh automatically:
+
+```typescript
+import { api } from '@flux/api-client';
+
+const posts = await api.get<Post[]>('/posts');
+await api.post('/posts', { title: 'Hello' });
+```

@@ -1,6 +1,18 @@
 # Flux
 
-Flux is a cross-platform state management library. It wraps Legend-State with typed utilities and SQLite persistence.
+Flux is the infrastructure layer that handles **state, persistence, auth, and sync** all in one.
+It wraps Legend-State with typed utilities, auto-persistence, auth primitives, and an
+authenticated API client — so the app layer never worries about tokens, KV writes, or
+server communication.
+
+## What Flux Handles
+
+| Concern | How |
+|---|---|
+| **State** | Legend-State observables via `createFluxStore`, `createKvStore`, `createTabularStore`, `createFluxAtom` |
+| **Persistence** | Automatic via `ObservablePersistFlux` — stores with a `name` auto-persist to KV storage |
+| **Auth** | Built-in `useAuth()`, `useUser()`, `useIsAuthenticated()` hooks + OTP/Apple login |
+| **API** | `api.get/post/put/delete` — auto-attaches Bearer token, auto-refreshes on 401 |
 
 ## Store Types
 
@@ -41,7 +53,20 @@ export const settings$ = createKvStore<Settings>({
 
 ## Usage
 
-Flux is a **library** - do not write app state here. Define your app schema in `app/` directory:
+### Auth (flux primitives — use directly)
+
+```ts
+import { useAuth, useUser, useIsAuthenticated } from '@flux';
+
+function App() {
+  const { user, isAuthenticated, logout } = useAuth();
+  // Tokens, persistence, refresh — all handled by flux.
+}
+```
+
+### App Stores (define in app/state/)
+
+Flux provides the store creators. App-specific data stores are defined in `app/state/`:
 
 ```ts
 // app/state.ts
@@ -57,8 +82,20 @@ export const store$ = createTabularStore<AppState>({
 
 // Use in components:
 // import { store$ } from '@/app/state';
-// const user = useValue(store$.user);
+// const user = useFluxValue(store$.user);
 ```
+
+### API Client (authenticated requests)
+
+```ts
+import { api } from '@flux/api-client';
+
+const posts = await api.get<Post[]>('/posts');
+await api.post('/posts', { title: 'Hello' });
+// Auth tokens and 401 refresh handled automatically.
+```
+
+## Store Types (details)
 
 ## Actions
 
@@ -129,8 +166,11 @@ const Component = observer(() => {
 
 ## Files
 
-- `state.ts` - Store creators (`createTabularStore`, `createKvStore`, `createFluxAtom`)
-- `actions.ts` - Action helpers (`createAction`, `createBatchAction`)
-- `hooks.ts` - React hooks (`useFluxValue`, `useFluxObservable`, `useFluxComputed`)
-- `persistence.ts` - SQLite persistence (reserved)
-- `index.ts` - Barrel export
+- `state.ts` — Store creators (`createTabularStore`, `createKvStore`, `createFluxStore`, `createFluxAtom`)
+- `actions.ts` — Action helpers (`createAction`, `createBatchAction`)
+- `hooks.ts` — React hooks (`useFluxValue`, `useFluxObservable`, `useFluxComputed`, `observer`)
+- `persistence.ts` — `ObservablePersistFlux` plugin (auto-persists stores to KV storage)
+- `auth-store.ts` — Auth state observable (user, tokens, loading, error)
+- `auth-hooks.ts` — Auth React hooks (`useAuth`, `useUser`, `useIsAuthenticated`) + login/logout API
+- `api-client.ts` — Authenticated HTTP client with auto 401 → refresh → retry
+- `index.ts` — Barrel export

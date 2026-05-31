@@ -1,6 +1,4 @@
-import { useIsAuthenticated } from '@flux/auth-hooks';
-import type { AuthUser } from '@flux/auth-store';
-import { initializeAuth } from '@flux/auth-store';
+import { useIsAuthenticated } from '@flux';
 import { kv } from '@storage/index';
 import { useRouter } from 'expo-router';
 import { useEffect, useRef } from 'react';
@@ -15,30 +13,18 @@ export default function Index() {
     if (hasInitialized.current) return;
     hasInitialized.current = true;
 
-    const initializeAndRoute = async () => {
-      const hasOnboarded = kv.getBoolean('onboarding_completed') ?? false;
+    const hasOnboarded = kv.getBoolean('onboarding_completed') ?? false;
 
-      if (!hasOnboarded) {
-        router.replace('/onboarding');
-        return;
-      }
+    if (!hasOnboarded) {
+      router.replace('/onboarding');
+      return;
+    }
 
-      const accessToken = kv.getString('auth_access_token');
-      const refreshToken = kv.getString('auth_refresh_token');
-      const user = kv.getObject<AuthUser>('auth_user');
-
-      if (accessToken && refreshToken && user) {
-        initializeAuth(accessToken, refreshToken, user);
-      }
-
-      if (isAuthenticated) {
-        router.replace('/home');
-      } else {
-        router.replace('/login');
-      }
-    };
-
-    initializeAndRoute();
+    if (isAuthenticated) {
+      router.replace('/home');
+    } else {
+      router.replace('/login');
+    }
   }, [isAuthenticated, router]);
 
   return (

@@ -1,4 +1,4 @@
-import { observable } from '@legendapp/state';
+import { createKvStore } from './state';
 
 export interface AuthUser {
   id: string;
@@ -29,7 +29,10 @@ const initialState: AuthStateData = {
   error: null,
 };
 
-export const authState$ = observable(initialState);
+export const authState$ = createKvStore<AuthStateData>({
+  initial: initialState,
+  name: 'auth',
+});
 
 export function setAuthTokens(accessToken: string, refreshToken: string) {
   authState$.accessToken.set(accessToken);
@@ -55,15 +58,4 @@ export function clearAuth() {
   authState$.refreshToken.set(null);
   authState$.isAuthenticated.set(false);
   authState$.error.set(null);
-}
-
-export function initializeAuth(
-  accessToken: string | null,
-  refreshToken: string | null,
-  user: AuthUser | null
-) {
-  authState$.accessToken.set(accessToken);
-  authState$.refreshToken.set(refreshToken);
-  authState$.user.set(user);
-  authState$.isAuthenticated.set(!!accessToken && !!user);
 }

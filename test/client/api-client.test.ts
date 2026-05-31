@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from 'bun:test';
 import { ApiError, api, apiClient } from '../../flux/api-client';
 import { authState$, clearAuth } from '../../flux/auth-store';
+import type { AuthStateData } from '../../flux/auth-store';
 import { MemoryKvAdapter, kv, setKvAdapter } from '../../storage';
 
 type FetchMock = (
@@ -12,6 +13,21 @@ function mockFetchHandler(
   handler: (url: string, options?: RequestInit) => Promise<Response>
 ) {
   globalThis.fetch = handler as unknown as typeof fetch;
+}
+
+function setAuthKv(tokens: {
+  accessToken: string;
+  refreshToken: string;
+  user?: AuthStateData['user'];
+}) {
+  kv.setObject<AuthStateData>('auth', {
+    user: tokens.user ?? null,
+    accessToken: tokens.accessToken,
+    refreshToken: tokens.refreshToken,
+    isAuthenticated: !!tokens.user,
+    isLoading: false,
+    error: null,
+  });
 }
 
 describe('api-client', () => {
@@ -90,16 +106,19 @@ describe('api-client', () => {
     });
 
     it('should load token and user from storage when not in memory', async () => {
-      kv.setString('auth_access_token', 'stored-token');
-      kv.setObject('auth_user', {
-        id: 'user-1',
-        email: 'test@example.com',
-        phone: null,
-        name: 'Test',
-        authProvider: 'email_otp',
-        avatarUrl: null,
-        createdAt: 1000,
-        updatedAt: 1000,
+      setAuthKv({
+        accessToken: 'stored-token',
+        refreshToken: 'stored-refresh',
+        user: {
+          id: 'user-1',
+          email: 'test@example.com',
+          phone: null,
+          name: 'Test',
+          authProvider: 'email_otp',
+          avatarUrl: null,
+          createdAt: 1000,
+          updatedAt: 1000,
+        },
       });
 
       let capturedToken: string | undefined;
@@ -121,8 +140,10 @@ describe('api-client', () => {
 
     it('should try to refresh token on 401 and retry', async () => {
       clearAuth();
-      kv.setString('auth_access_token', 'expired-token');
-      kv.setString('auth_refresh_token', 'valid-refresh');
+      setAuthKv({
+        accessToken: 'expired-token',
+        refreshToken: 'valid-refresh',
+      });
 
       let callCount = 0;
       mockFetchHandler(async (url: string) => {
@@ -159,13 +180,13 @@ describe('api-client', () => {
       const result = await apiClient<{ success: boolean }>('/api/data');
       expect(result).toEqual({ success: true });
       expect(callCount).toBe(3);
-      expect(kv.getString('auth_access_token')).toBe('new-access');
+      const stored = kv.getObject<AuthStateData>('auth');
+      expect(stored?.accessToken).toBe('new-access');
     });
 
-    it('should throw NO_REFRESH_TOKEN when refresh fails', async () => {
+    it('should throw NO_REFRESH_TOKEN when no refresh token available', async () => {
       clearAuth();
       authState$.accessToken.set('expired-token');
-      kv.remove('auth_refresh_token');
 
       mockFetchHandler(async (url: string) => {
         if (url.includes('/auth/refresh')) {
@@ -209,6 +230,10 @@ describe('api-client', () => {
 
     it('should expose api.delete', () => {
       expect(typeof api.delete).toBe('function');
+    });
+
+    it('should expose api.refresh', () => {
+      expect(typeof api.refresh).toBe('function');
     });
   });
 });

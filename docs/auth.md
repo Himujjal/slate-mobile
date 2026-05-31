@@ -73,12 +73,11 @@ interface AuthStateData {
 
 | Function | Description |
 |----------|-------------|
-| `initializeAuth()` | Check stored tokens and restore session |
-| `setAuthTokens(accessToken, refreshToken)` | Store tokens + persist to tokenStorage |
-| `setAuthUser(user)` | Set user + persist to tokenStorage |
+| `setAuthTokens(accessToken, refreshToken)` | Store tokens (auto-persisted to KV) |
+| `setAuthUser(user)` | Set user (auto-persisted to KV) |
 | `setAuthLoading(isLoading)` | Set loading state |
 | `setAuthError(error)` | Set error state |
-| `clearAuth()` | Clear all auth state + tokenStorage |
+| `clearAuth()` | Clear all auth state (auto-persisted to KV) |
 
 ## Client-Side: Auth Hooks
 
@@ -92,7 +91,6 @@ const {
   register,       // (name: string, email: string, password: string) => Promise<void>
   loginWithGoogle,// (idToken: string) => Promise<void>
   logout,         // () => Promise<void>
-  refresh,        // () => Promise<void>
 } = useAuth();
 ```
 

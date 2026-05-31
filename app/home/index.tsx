@@ -1,4 +1,4 @@
-import { useAuth } from '@flux/auth-hooks';
+import { useAuth } from '@flux';
 import { Button } from '@ui/button/button';
 import { Text } from '@ui/text/text';
 import { useRouter } from 'expo-router';

@@ -1,5 +1,5 @@
 import { kv } from '../storage';
-import type { AuthUser } from './auth-store';
+import type { AuthStateData } from './auth-store';
 import {
   authState$,
   clearAuth,
@@ -27,7 +27,7 @@ interface RequestOptions extends RequestInit {
 let isRefreshing = false;
 let refreshPromise: Promise<void> | null = null;
 
-async function refreshToken(): Promise<void> {
+export async function refreshToken(): Promise<void> {
   if (isRefreshing) {
     await refreshPromise;
     return;
@@ -35,9 +35,10 @@ async function refreshToken(): Promise<void> {
 
   isRefreshing = true;
   refreshPromise = (async () => {
-    const storedAccessToken = kv.getString('auth_access_token');
-    const storedRefreshToken = kv.getString('auth_refresh_token');
-    if (!storedAccessToken || !storedRefreshToken) {
+    const storedAuth = kv.getObject<AuthStateData>('auth');
+    const storedRefreshToken = storedAuth?.refreshToken;
+
+    if (!storedRefreshToken) {
       clearAuth();
       throw new ApiError('No refresh token', 401, 'NO_REFRESH_TOKEN');
     }
@@ -50,21 +51,13 @@ async function refreshToken(): Promise<void> {
       });
 
       if (!response.ok) {
-        kv.remove('auth_access_token');
-        kv.remove('auth_refresh_token');
-        kv.remove('auth_user');
         clearAuth();
         throw new ApiError('Refresh failed', 401, 'REFRESH_FAILED');
       }
 
       const data = await response.json();
-      kv.setString('auth_access_token', data.accessToken);
-      kv.setString('auth_refresh_token', data.refreshToken);
       setAuthTokens(data.accessToken, data.refreshToken);
     } catch {
-      kv.remove('auth_access_token');
-      kv.remove('auth_refresh_token');
-      kv.remove('auth_user');
       clearAuth();
       throw new ApiError('Refresh failed', 401, 'REFRESH_FAILED');
     } finally {
@@ -126,13 +119,12 @@ export async function apiClient<T>(
   };
 
   if (authenticated && !accessToken) {
-    const storedAccessToken = kv.getString('auth_access_token');
-    if (storedAccessToken) {
-      accessToken = storedAccessToken;
-      const storedUser = kv.getObject<AuthUser>('auth_user');
-      if (storedUser) {
-        setAuthUser(storedUser);
-      }
+    const storedAuth = kv.getObject<AuthStateData>('auth');
+    if (storedAuth?.accessToken) {
+      accessToken = storedAuth.accessToken;
+    }
+    if (storedAuth?.user) {
+      setAuthUser(storedAuth.user);
     }
   }
 
@@ -140,6 +132,8 @@ export async function apiClient<T>(
 }
 
 export const api = {
+  refresh: refreshToken,
+
   get: <T>(endpoint: string, options?: RequestOptions) =>
     apiClient<T>(endpoint, { ...options, method: 'GET' }),
 

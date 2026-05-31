@@ -1,6 +1,6 @@
+import { useAuth } from '@flux';
+import type { AuthUser } from '@flux/auth-store';
 import { type ReactNode, createContext, useContext } from 'react';
-import { useAuth } from '../../flux/auth-hooks';
-import type { AuthUser } from '../../flux/auth-store';
 
 interface AuthContextValue {
   user: AuthUser | null;

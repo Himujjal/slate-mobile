@@ -1,6 +1,6 @@
+import { useAuth } from '@flux';
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { useAuth } from '../../flux/auth-hooks';
 import { Button } from '../button/button';
 import { TextInput } from '../text-input/text-input';
 import { Text } from '../text/text';
