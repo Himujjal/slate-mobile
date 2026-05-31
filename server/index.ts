@@ -2,12 +2,9 @@ import { Elysia } from 'elysia';
 import { aiRoutes } from './ai-routes';
 import { authRoutes } from './auth-routes';
 import { contentRoutes } from './content-routes';
-import { initDb } from './db';
 import { docsRoutes } from './docs-routes';
 import { orchestrationRoutes } from './orchestration-routes';
 import { utilityRoutes } from './utility-routes';
-
-await initDb();
 
 const app = new Elysia()
   .use(authRoutes)

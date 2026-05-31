@@ -8,15 +8,17 @@ import { Colors, Spacing, useThemeColor } from '../theme';
 
 interface LoginFormProps {
   onSuccess?: () => void;
-  onGoogleSignIn?: () => void;
 }
 
-export function LoginForm({ onSuccess, onGoogleSignIn }: LoginFormProps) {
-  const { login, isLoading, error } = useAuth();
+type AuthStep = 'email' | 'otp' | 'method';
+
+export function LoginForm({ onSuccess }: LoginFormProps) {
+  const { requestEmailOtp, verifyEmailOtp, isLoading, error } = useAuth();
+  const [step, setStep] = useState<AuthStep>('method');
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [otp, setOtp] = useState('');
   const [emailError, setEmailError] = useState('');
-  const [passwordError, setPasswordError] = useState('');
+  const [otpError, setOtpError] = useState('');
   const [generalError, setGeneralError] = useState('');
 
   const destructiveColor = useThemeColor({
@@ -24,44 +26,87 @@ export function LoginForm({ onSuccess, onGoogleSignIn }: LoginFormProps) {
     dark: Colors.dark.destructive,
   });
 
-  const validate = (): boolean => {
-    let isValid = true;
+  const validateEmail = (): boolean => {
     setEmailError('');
-    setPasswordError('');
-    setGeneralError('');
-
     if (!email) {
       setEmailError('Email is required');
-      isValid = false;
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return false;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       setEmailError('Invalid email format');
-      isValid = false;
+      return false;
     }
-
-    if (!password) {
-      setPasswordError('Password is required');
-      isValid = false;
-    }
-
-    return isValid;
+    return true;
   };
 
-  const handleSubmit = async () => {
-    if (!validate()) return;
-
+  const handleRequestOtp = async () => {
+    if (!validateEmail()) return;
+    setGeneralError('');
     try {
-      await login({ email, password });
+      await requestEmailOtp(email);
+      setStep('otp');
+    } catch (e) {
+      setGeneralError(e instanceof Error ? e.message : 'Failed to send OTP');
+    }
+  };
+
+  const handleVerifyOtp = async () => {
+    setOtpError('');
+    setGeneralError('');
+    if (!otp || otp.length < 4) {
+      setOtpError('Enter the OTP code');
+      return;
+    }
+    try {
+      await verifyEmailOtp(email, otp);
       onSuccess?.();
     } catch (e) {
-      setGeneralError(e instanceof Error ? e.message : 'Login failed');
+      setGeneralError(
+        e instanceof Error ? e.message : 'OTP verification failed'
+      );
     }
   };
 
-  const handleGooglePress = () => {
-    if (onGoogleSignIn) {
-      onGoogleSignIn();
-    }
+  const handleReset = () => {
+    setStep('method');
+    setOtp('');
+    setGeneralError('');
+    setOtpError('');
   };
+
+  if (step === 'otp') {
+    return (
+      <View style={styles.container}>
+        <Text style={styles.instruction}>Enter the OTP sent to {email}</Text>
+
+        <TextInput
+          label="OTP Code"
+          value={otp}
+          onChangeText={setOtp}
+          placeholder="Enter 6-digit code"
+          keyboardType="number-pad"
+          maxLength={6}
+          error={otpError}
+        />
+
+        {generalError && (
+          <Text style={[styles.error, { color: destructiveColor }]}>
+            {generalError}
+          </Text>
+        )}
+
+        <View style={styles.buttonContainer}>
+          <Button onPress={handleVerifyOtp} loading={isLoading}>
+            Sign In
+          </Button>
+        </View>
+
+        <Button onPress={handleReset} variant="text" disabled={isLoading}>
+          Use a different email
+        </Button>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -76,17 +121,6 @@ export function LoginForm({ onSuccess, onGoogleSignIn }: LoginFormProps) {
         error={emailError}
       />
 
-      <View style={styles.spacer} />
-
-      <TextInput
-        label="Password"
-        value={password}
-        onChangeText={setPassword}
-        placeholder="Enter your password"
-        secureTextEntry
-        error={passwordError}
-      />
-
       {generalError && (
         <Text style={[styles.error, { color: destructiveColor }]}>
           {generalError}
@@ -94,24 +128,10 @@ export function LoginForm({ onSuccess, onGoogleSignIn }: LoginFormProps) {
       )}
 
       <View style={styles.buttonContainer}>
-        <Button onPress={handleSubmit} loading={isLoading}>
-          Sign In
+        <Button onPress={handleRequestOtp} loading={isLoading}>
+          Send OTP
         </Button>
       </View>
-
-      <View style={styles.divider}>
-        <View style={styles.dividerLine} />
-        <Text style={styles.dividerText}>or</Text>
-        <View style={styles.dividerLine} />
-      </View>
-
-      <Button
-        onPress={handleGooglePress}
-        variant="outlined"
-        disabled={isLoading}
-      >
-        Continue with Google
-      </Button>
     </View>
   );
 }
@@ -120,28 +140,15 @@ const styles = StyleSheet.create({
   container: {
     gap: Spacing[4],
   },
-  spacer: {
-    height: Spacing[4],
+  instruction: {
+    fontSize: 14,
+    textAlign: 'center',
+    marginBottom: Spacing[2],
   },
   error: {
     fontSize: 14,
   },
   buttonContainer: {
     marginTop: Spacing[2],
-  },
-  divider: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginVertical: Spacing[4],
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: '#E5E5E5',
-  },
-  dividerText: {
-    paddingHorizontal: Spacing[4],
-    color: '#888',
-    fontSize: 14,
   },
 });

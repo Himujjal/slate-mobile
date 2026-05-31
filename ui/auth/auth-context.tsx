@@ -9,13 +9,20 @@ interface AuthContextValue {
   isAuthenticated: boolean;
   isLoading: boolean;
   error: string | null;
-  login: (credentials: { email: string; password: string }) => Promise<void>;
-  register: (credentials: {
-    email: string;
-    password: string;
-    name: string;
-  }) => Promise<void>;
   logout: () => Promise<void>;
+  requestEmailOtp: (email: string) => Promise<{
+    message: string;
+    identifier: string;
+    method: 'email' | 'mobile';
+  }>;
+  verifyEmailOtp: (email: string, otp: string) => Promise<void>;
+  requestMobileOtp: (phone: string) => Promise<{
+    message: string;
+    identifier: string;
+    method: 'email' | 'mobile';
+  }>;
+  verifyMobileOtp: (phone: string, otp: string) => Promise<void>;
+  loginWithApple: (idToken: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);

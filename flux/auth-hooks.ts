@@ -10,19 +10,10 @@ import {
   setAuthUser,
 } from './auth-store';
 
-interface LoginCredentials {
-  email: string;
-  password: string;
-}
-
-interface RegisterCredentials {
-  email: string;
-  password: string;
-  name: string;
-}
-
-interface GoogleCredentials {
-  idToken: string;
+interface OtpRequestResponse {
+  message: string;
+  identifier: string;
+  method: 'email' | 'mobile';
 }
 
 interface AuthResponse {
@@ -51,19 +42,15 @@ async function fetchAuth<T>(endpoint: string, data?: unknown): Promise<T> {
   return response.json();
 }
 
-export function useAuth(): {
-  user: AuthUser | null;
-  accessToken: string | null;
-  refreshToken: string | null;
-  isAuthenticated: boolean;
-  isLoading: boolean;
-  error: string | null;
-  login: (credentials: LoginCredentials) => Promise<void>;
-  register: (credentials: RegisterCredentials) => Promise<void>;
-  loginWithGoogle: (credentials: GoogleCredentials) => Promise<void>;
-  logout: () => Promise<void>;
-  refresh: () => Promise<void>;
-} {
+function handleAuthSuccess(response: AuthResponse) {
+  setAuthTokens(response.accessToken, response.refreshToken);
+  setAuthUser(response.user);
+  kv.setString('auth_access_token', response.accessToken);
+  kv.setString('auth_refresh_token', response.refreshToken);
+  kv.setObject('auth_user', response.user);
+}
+
+export function useAuth() {
   const user = useValue(authState$.user) as AuthUser | null;
   const accessToken = useValue(authState$.accessToken) as string | null;
   const refreshToken = useValue(authState$.refreshToken) as string | null;
@@ -71,54 +58,86 @@ export function useAuth(): {
   const isLoading = useValue(authState$.isLoading) as boolean;
   const error = useValue(authState$.error) as string | null;
 
-  const login = async (credentials: LoginCredentials) => {
+  const requestEmailOtp = async (email: string) => {
     setAuthLoading(true);
     setAuthError(null);
     try {
-      const response = await fetchAuth<AuthResponse>('login', credentials);
-      setAuthTokens(response.accessToken, response.refreshToken);
-      setAuthUser(response.user);
-      kv.setString('auth_access_token', response.accessToken);
-      kv.setString('auth_refresh_token', response.refreshToken);
-      kv.setObject('auth_user', response.user);
+      const response = await fetchAuth<OtpRequestResponse>('otp/request', {
+        method: 'email',
+        email,
+      });
+      return response;
     } catch (e) {
-      setAuthError(e instanceof Error ? e.message : 'Login failed');
+      setAuthError(e instanceof Error ? e.message : 'OTP request failed');
       throw e;
     } finally {
       setAuthLoading(false);
     }
   };
 
-  const register = async (credentials: RegisterCredentials) => {
+  const verifyEmailOtp = async (email: string, otp: string) => {
     setAuthLoading(true);
     setAuthError(null);
     try {
-      const response = await fetchAuth<AuthResponse>('register', credentials);
-      setAuthTokens(response.accessToken, response.refreshToken);
-      setAuthUser(response.user);
-      kv.setString('auth_access_token', response.accessToken);
-      kv.setString('auth_refresh_token', response.refreshToken);
-      kv.setObject('auth_user', response.user);
+      const response = await fetchAuth<AuthResponse>('otp/verify', {
+        method: 'email',
+        email,
+        otp,
+      });
+      handleAuthSuccess(response);
     } catch (e) {
-      setAuthError(e instanceof Error ? e.message : 'Registration failed');
+      setAuthError(e instanceof Error ? e.message : 'OTP verification failed');
       throw e;
     } finally {
       setAuthLoading(false);
     }
   };
 
-  const loginWithGoogle = async (credentials: GoogleCredentials) => {
+  const requestMobileOtp = async (phone: string) => {
     setAuthLoading(true);
     setAuthError(null);
     try {
-      const response = await fetchAuth<AuthResponse>('google', credentials);
-      setAuthTokens(response.accessToken, response.refreshToken);
-      setAuthUser(response.user);
-      kv.setString('auth_access_token', response.accessToken);
-      kv.setString('auth_refresh_token', response.refreshToken);
-      kv.setObject('auth_user', response.user);
+      const response = await fetchAuth<OtpRequestResponse>('otp/request', {
+        method: 'mobile',
+        phone,
+      });
+      return response;
     } catch (e) {
-      setAuthError(e instanceof Error ? e.message : 'Google sign in failed');
+      setAuthError(e instanceof Error ? e.message : 'OTP request failed');
+      throw e;
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
+  const verifyMobileOtp = async (phone: string, otp: string) => {
+    setAuthLoading(true);
+    setAuthError(null);
+    try {
+      const response = await fetchAuth<AuthResponse>('otp/verify', {
+        method: 'mobile',
+        phone,
+        otp,
+      });
+      handleAuthSuccess(response);
+    } catch (e) {
+      setAuthError(e instanceof Error ? e.message : 'OTP verification failed');
+      throw e;
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
+  const loginWithApple = async (_idToken: string) => {
+    setAuthLoading(true);
+    setAuthError(null);
+    try {
+      const response = await fetchAuth<AuthResponse>('apple', {
+        idToken: _idToken,
+      });
+      handleAuthSuccess(response);
+    } catch (e) {
+      setAuthError(e instanceof Error ? e.message : 'Apple sign in failed');
       throw e;
     } finally {
       setAuthLoading(false);
@@ -134,6 +153,7 @@ export function useAuth(): {
         body: JSON.stringify({ refreshToken: refreshTokenVal }),
       });
     } catch {
+      // Ignore network errors during logout
     } finally {
       kv.remove('auth_access_token');
       kv.remove('auth_refresh_token');
@@ -178,9 +198,11 @@ export function useAuth(): {
     isAuthenticated,
     isLoading,
     error,
-    login,
-    register,
-    loginWithGoogle,
+    requestEmailOtp,
+    verifyEmailOtp,
+    requestMobileOtp,
+    verifyMobileOtp,
+    loginWithApple,
     logout,
     refresh,
   };

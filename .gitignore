@@ -45,3 +45,6 @@ app-example
 .opencode
 
 .env
+
+# sqlite databases
+*.db

@@ -3,11 +3,10 @@ import type { Generated } from 'kysely';
 export interface Database {
   users: {
     id: string;
-    email: string;
+    email: string | null;
+    phone: string | null;
     name: string;
-    password_hash: string | null;
-    salt: string | null;
-    google_id: string | null;
+    auth_provider: string;
     avatar_url: string | null;
     created_at: number;
     updated_at: number;
@@ -18,6 +17,16 @@ export interface Database {
     user_id: string;
     token: string;
     expires_at: number;
+    created_at: number;
+  };
+
+  otp_codes: {
+    id: Generated<number>;
+    identifier: string;
+    otp: string;
+    method: string;
+    expires_at: number;
+    used: number;
     created_at: number;
   };
 

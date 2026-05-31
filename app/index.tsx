@@ -1,4 +1,5 @@
 import { useIsAuthenticated } from '@flux/auth-hooks';
+import type { AuthUser } from '@flux/auth-store';
 import { initializeAuth } from '@flux/auth-store';
 import { kv } from '@storage/index';
 import { useRouter } from 'expo-router';
@@ -24,9 +25,7 @@ export default function Index() {
 
       const accessToken = kv.getString('auth_access_token');
       const refreshToken = kv.getString('auth_refresh_token');
-      const user = kv.getObject<{ id: string; email: string; name: string }>(
-        'auth_user'
-      );
+      const user = kv.getObject<AuthUser>('auth_user');
 
       if (accessToken && refreshToken && user) {
         initializeAuth(accessToken, refreshToken, user);

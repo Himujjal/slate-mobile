@@ -1,4 +1,5 @@
 import { kv } from '../storage';
+import type { AuthUser } from './auth-store';
 import {
   authState$,
   clearAuth,
@@ -128,11 +129,7 @@ export async function apiClient<T>(
     const storedAccessToken = kv.getString('auth_access_token');
     if (storedAccessToken) {
       accessToken = storedAccessToken;
-      const storedUser = kv.getObject<{
-        id: string;
-        email: string;
-        name: string;
-      }>('auth_user');
+      const storedUser = kv.getObject<AuthUser>('auth_user');
       if (storedUser) {
         setAuthUser(storedUser);
       }

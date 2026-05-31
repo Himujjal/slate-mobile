@@ -36,6 +36,7 @@ export async function signToken(
     .setIssuedAt()
     .setExpirationTime(expiry)
     .setSubject(payload.sub as string)
+    .setJti(crypto.randomUUID())
     .sign(secret);
 }
 

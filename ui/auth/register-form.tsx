@@ -10,16 +10,15 @@ interface RegisterFormProps {
   onSuccess?: () => void;
 }
 
+type AuthStep = 'email' | 'otp';
+
 export function RegisterForm({ onSuccess }: RegisterFormProps) {
-  const { register, isLoading, error } = useAuth();
-  const [name, setName] = useState('');
+  const { requestEmailOtp, verifyEmailOtp, isLoading } = useAuth();
+  const [step, setStep] = useState<AuthStep>('email');
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [nameError, setNameError] = useState('');
+  const [otp, setOtp] = useState('');
   const [emailError, setEmailError] = useState('');
-  const [passwordError, setPasswordError] = useState('');
-  const [confirmError, setConfirmError] = useState('');
+  const [otpError, setOtpError] = useState('');
   const [generalError, setGeneralError] = useState('');
 
   const destructiveColor = useThemeColor({
@@ -27,67 +26,88 @@ export function RegisterForm({ onSuccess }: RegisterFormProps) {
     dark: Colors.dark.destructive,
   });
 
-  const validate = (): boolean => {
-    let isValid = true;
-    setNameError('');
+  const validateEmail = (): boolean => {
     setEmailError('');
-    setPasswordError('');
-    setConfirmError('');
-    setGeneralError('');
-
-    if (!name || name.length < 2) {
-      setNameError('Name must be at least 2 characters');
-      isValid = false;
-    }
-
     if (!email) {
       setEmailError('Email is required');
-      isValid = false;
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return false;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       setEmailError('Invalid email format');
-      isValid = false;
+      return false;
     }
-
-    if (!password) {
-      setPasswordError('Password is required');
-      isValid = false;
-    } else if (password.length < 8) {
-      setPasswordError('Password must be at least 8 characters');
-      isValid = false;
-    }
-
-    if (password !== confirmPassword) {
-      setConfirmError('Passwords do not match');
-      isValid = false;
-    }
-
-    return isValid;
+    return true;
   };
 
-  const handleSubmit = async () => {
-    if (!validate()) return;
-
+  const handleRequestOtp = async () => {
+    if (!validateEmail()) return;
+    setGeneralError('');
     try {
-      await register({ email, password, name });
+      await requestEmailOtp(email);
+      setStep('otp');
+    } catch (e) {
+      setGeneralError(e instanceof Error ? e.message : 'Failed to send OTP');
+    }
+  };
+
+  const handleVerifyOtp = async () => {
+    setOtpError('');
+    setGeneralError('');
+    if (!otp || otp.length < 4) {
+      setOtpError('Enter the OTP code');
+      return;
+    }
+    try {
+      await verifyEmailOtp(email, otp);
       onSuccess?.();
     } catch (e) {
-      setGeneralError(e instanceof Error ? e.message : 'Registration failed');
+      setGeneralError(e instanceof Error ? e.message : 'Verification failed');
     }
   };
+
+  const handleReset = () => {
+    setStep('email');
+    setOtp('');
+    setGeneralError('');
+    setOtpError('');
+  };
+
+  if (step === 'otp') {
+    return (
+      <View style={styles.container}>
+        <Text style={styles.instruction}>Enter the OTP sent to {email}</Text>
+
+        <TextInput
+          label="OTP Code"
+          value={otp}
+          onChangeText={setOtp}
+          placeholder="Enter 6-digit code"
+          keyboardType="number-pad"
+          maxLength={6}
+          error={otpError}
+        />
+
+        {generalError && (
+          <Text style={[styles.error, { color: destructiveColor }]}>
+            {generalError}
+          </Text>
+        )}
+
+        <View style={styles.buttonContainer}>
+          <Button onPress={handleVerifyOtp} loading={isLoading}>
+            Create Account
+          </Button>
+        </View>
+
+        <Button onPress={handleReset} variant="text" disabled={isLoading}>
+          Use a different email
+        </Button>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
-      <TextInput
-        label="Name"
-        value={name}
-        onChangeText={setName}
-        placeholder="Your name"
-        autoCapitalize="words"
-        error={nameError}
-      />
-
-      <View style={styles.spacer} />
-
       <TextInput
         label="Email"
         value={email}
@@ -99,28 +119,6 @@ export function RegisterForm({ onSuccess }: RegisterFormProps) {
         error={emailError}
       />
 
-      <View style={styles.spacer} />
-
-      <TextInput
-        label="Password"
-        value={password}
-        onChangeText={setPassword}
-        placeholder="Min 8 characters"
-        secureTextEntry
-        error={passwordError}
-      />
-
-      <View style={styles.spacer} />
-
-      <TextInput
-        label="Confirm Password"
-        value={confirmPassword}
-        onChangeText={setConfirmPassword}
-        placeholder="Repeat password"
-        secureTextEntry
-        error={confirmError}
-      />
-
       {generalError && (
         <Text style={[styles.error, { color: destructiveColor }]}>
           {generalError}
@@ -128,8 +126,8 @@ export function RegisterForm({ onSuccess }: RegisterFormProps) {
       )}
 
       <View style={styles.buttonContainer}>
-        <Button onPress={handleSubmit} loading={isLoading}>
-          Create Account
+        <Button onPress={handleRequestOtp} loading={isLoading}>
+          Send OTP
         </Button>
       </View>
     </View>
@@ -140,13 +138,15 @@ const styles = StyleSheet.create({
   container: {
     gap: Spacing[4],
   },
-  spacer: {
-    height: Spacing[4],
+  instruction: {
+    fontSize: 14,
+    textAlign: 'center',
+    marginBottom: Spacing[2],
   },
   error: {
     fontSize: 14,
   },
   buttonContainer: {
-    marginTop: Spacing[4],
+    marginTop: Spacing[2],
   },
 });

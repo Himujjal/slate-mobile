@@ -2,8 +2,13 @@ import { observable } from '@legendapp/state';
 
 export interface AuthUser {
   id: string;
-  email: string;
+  email: string | null;
+  phone: string | null;
   name: string;
+  authProvider: string;
+  avatarUrl: string | null;
+  createdAt: number;
+  updatedAt: number;
 }
 
 export interface AuthStateData {

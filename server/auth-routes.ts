@@ -1,19 +1,35 @@
 import { Elysia, t } from 'elysia';
-import type { Kysely } from 'kysely';
-import { getDb } from './db';
-import type { Database } from './db/database';
-import {
-  clearFailedAttempts,
-  clearRateLimitAuth,
-  getLockoutRemainingseconds,
-  isLockedOut,
-  isRateLimitedAuth,
-  isValidEmail,
-  recordFailedAttempt,
-} from './utils/auth-security';
+import { table } from '../storage';
+import { clearRateLimitAuth, isRateLimitedAuth } from './utils/auth-security';
 import { createTokens, verifyToken } from './utils/jwt';
-import { hashPassword, verifyPassword } from './utils/password';
+import {
+  generateOtp,
+  getLastOtp,
+  isValidEmail,
+  isValidPhone,
+  storeOtp,
+  verifyOtp,
+} from './utils/otp';
 import { sanitizeEmail, sanitizeInput } from './utils/sanitize';
+
+interface UserRecord extends Record<string, unknown> {
+  id: string;
+  email: string | null;
+  phone: string | null;
+  name: string;
+  authProvider: string;
+  avatarUrl: string | null;
+  createdAt: number;
+  updatedAt: number;
+}
+
+interface RefreshTokenRecord extends Record<string, unknown> {
+  id: string;
+  userId: string;
+  token: string;
+  expiresAt: number;
+  createdAt: number;
+}
 
 function makeErrorResponse(message: string, status: number) {
   return new Response(JSON.stringify({ error: message }), {
@@ -22,322 +38,214 @@ function makeErrorResponse(message: string, status: number) {
   });
 }
 
-function mapUser(user: {
-  id: string;
-  email: string;
-  name: string;
-  avatar_url: string | null;
-  created_at: number;
-  updated_at: number;
-}) {
+function mapUser(user: UserRecord) {
   return {
     id: user.id,
     email: user.email,
+    phone: user.phone,
     name: user.name,
-    avatarUrl: user.avatar_url,
-    createdAt: user.created_at,
-    updatedAt: user.updated_at,
+    authProvider: user.authProvider,
+    avatarUrl: user.avatarUrl,
+    createdAt: user.createdAt,
+    updatedAt: user.updatedAt,
   };
 }
 
-async function saveRefreshToken(
-  db: Kysely<Database>,
-  userId: string,
-  token: string,
-  expiresAt: number
-) {
-  const now = Date.now();
-  await db
-    .insertInto('refresh_tokens')
-    .values({
-      user_id: userId,
-      token,
-      expires_at: expiresAt,
-      created_at: now,
-    })
-    .execute();
+function validateMethod(method: string): 'email' | 'mobile' | null {
+  if (method === 'email' || method === 'mobile') return method;
+  return null;
 }
-
-async function deleteRefreshToken(db: Kysely<Database>, token: string) {
-  await db.deleteFrom('refresh_tokens').where('token', '=', token).execute();
-}
-
-async function cleanExpiredTokens(db: Kysely<Database>) {
-  await db
-    .deleteFrom('refresh_tokens')
-    .where('expires_at', '<', Date.now())
-    .execute();
-}
-
-type UserRow = {
-  id: string;
-  email: string;
-  name: string;
-  password_hash: string | null;
-  salt: string | null;
-  google_id: string | null;
-  avatar_url: string | null;
-  created_at: number;
-  updated_at: number;
-};
 
 const REFRESH_TOKEN_EXPIRY_MS = 7 * 24 * 60 * 60 * 1000;
 
+async function getExistingUser(
+  method: 'email' | 'mobile',
+  identifier: string
+): Promise<UserRecord | undefined> {
+  if (method === 'email') {
+    const users = table.query<UserRecord>(
+      'users',
+      (u) => u.email === identifier
+    );
+    return users[0];
+  }
+  const users = table.query<UserRecord>('users', (u) => u.phone === identifier);
+  return users[0];
+}
+
+function createNewUser(
+  method: 'email' | 'mobile',
+  identifier: string
+): UserRecord {
+  const id = crypto.randomUUID();
+  const now = Date.now();
+  const name =
+    method === 'email'
+      ? identifier.split('@')[0]
+      : `User ${identifier.slice(-4)}`;
+
+  const user: UserRecord = {
+    id,
+    email: method === 'email' ? identifier : null,
+    phone: method === 'mobile' ? identifier : null,
+    name,
+    authProvider: method === 'email' ? 'email_otp' : 'mobile_otp',
+    avatarUrl: null,
+    createdAt: now,
+    updatedAt: now,
+  };
+
+  table.insert('users', user);
+  return user;
+}
+
+function saveRefreshToken(
+  userId: string,
+  token: string,
+  expiresAt: number
+): void {
+  const id = crypto.randomUUID();
+  table.insert('refresh_tokens', {
+    id,
+    userId,
+    token,
+    expiresAt,
+    createdAt: Date.now(),
+  } as RefreshTokenRecord);
+}
+
+function findRefreshToken(token: string): RefreshTokenRecord | undefined {
+  const tokens = table.query<RefreshTokenRecord>(
+    'refresh_tokens',
+    (t) => t.token === token
+  );
+  return tokens[0];
+}
+
+function deleteRefreshToken(token: string): void {
+  const tokens = table.query<RefreshTokenRecord>(
+    'refresh_tokens',
+    (t) => t.token === token
+  );
+  for (const t of tokens) {
+    table.delete('refresh_tokens', t.id);
+  }
+}
+
 export const authRoutes = new Elysia({ prefix: '/auth' })
   .post(
-    '/register',
-    async ({ body, headers }) => {
-      const { email, password, name } = body as {
-        email: string;
-        password: string;
-        name: string;
+    '/otp/request',
+    async (ctx) => {
+      const { email, phone, method } = ctx.body as {
+        email?: string;
+        phone?: string;
+        method: string;
       };
-
-      if (!isValidEmail(email)) {
-        return makeErrorResponse('Invalid email format', 400);
-      }
-
-      const clientIp =
-        headers['x-forwarded-for']?.split(',')[0] ||
-        headers['x-real-ip'] ||
-        'unknown';
-      const rateLimitKey = `${email}:${clientIp}`;
-
-      if (isRateLimitedAuth(rateLimitKey)) {
+      const validatedMethod = validateMethod(method);
+      if (!validatedMethod) {
         return makeErrorResponse(
-          'Too many requests. Please try again later',
-          429
+          'Invalid method. Use "email" or "mobile"',
+          400
         );
       }
 
-      const sanitizedEmail = sanitizeEmail(email);
-      const sanitizedName = sanitizeInput(name);
-
-      const db = getDb() as Kysely<Database>;
-
-      const existing = await db
-        .selectFrom('users')
-        .selectAll()
-        .where('email', '=', sanitizedEmail)
-        .executeTakeFirst();
-
-      if (existing) {
-        return makeErrorResponse('User already exists', 400);
-      }
-
-      if (password.length < 8) {
-        return makeErrorResponse('Password must be at least 8 characters', 400);
-      }
-
-      const { hash } = await hashPassword(password);
-      const id = crypto.randomUUID();
-      const now = Date.now();
-
-      await db
-        .insertInto('users')
-        .values({
-          id,
-          email: email.toLowerCase(),
-          name: name.trim(),
-          password_hash: hash,
-          salt: null,
-          google_id: null,
-          avatar_url: null,
-          created_at: now,
-          updated_at: now,
-        })
-        .execute();
-
-      clearRateLimitAuth(rateLimitKey);
-
-      const tokens = await createTokens({ id, email: email.toLowerCase() });
-      const expiresAt = Date.now() + REFRESH_TOKEN_EXPIRY_MS;
-      await saveRefreshToken(db, id, tokens.refreshToken, expiresAt);
-
-      return {
-        accessToken: tokens.accessToken,
-        refreshToken: tokens.refreshToken,
-        user: { id, email: sanitizedEmail, name: sanitizedName },
-        expiresIn: tokens.expiresIn,
-      };
-    },
-    {
-      body: t.Object({
-        email: t.String({ format: 'email' }),
-        password: t.String({ minLength: 8 }),
-        name: t.String({ minLength: 1 }),
-      }),
-    }
-  )
-  .post(
-    '/login',
-    async ({ body, headers }) => {
-      const { email, password } = body as {
-        email: string;
-        password: string;
-      };
-
-      if (!isValidEmail(email)) {
-        return makeErrorResponse('Invalid email format', 400);
-      }
-
-      const clientIp =
-        headers['x-forwarded-for']?.split(',')[0] ||
-        headers['x-real-ip'] ||
-        'unknown';
-      const rateLimitKey = `${email}:${clientIp}`;
-
-      if (isRateLimitedAuth(rateLimitKey)) {
-        return makeErrorResponse(
-          'Too many requests. Please try again later',
-          429
-        );
-      }
-
-      const sanitizedEmail = sanitizeEmail(email);
-
-      if (isLockedOut(sanitizedEmail)) {
-        const remaining = getLockoutRemainingseconds(sanitizedEmail);
-        return makeErrorResponse(
-          `Account locked. Try again in ${Math.ceil(remaining / 60)} minutes`,
-          429
-        );
-      }
-
-      const db = getDb() as Kysely<Database>;
-
-      const user = (await db
-        .selectFrom('users')
-        .selectAll()
-        .where('email', '=', sanitizedEmail)
-        .executeTakeFirst()) as UserRow | undefined;
-
-      if (!user || !user.password_hash) {
-        return makeErrorResponse('Invalid credentials', 401);
-      }
-
-      const isValid = await verifyPassword(password, user.password_hash);
-      if (!isValid) {
-        const isLocked = recordFailedAttempt(sanitizedEmail);
-        if (isLocked) {
-          return makeErrorResponse(
-            'Too many failed attempts. Account locked for 15 minutes',
-            429
-          );
+      let identifier: string;
+      if (validatedMethod === 'email') {
+        if (!email || !isValidEmail(email)) {
+          return makeErrorResponse('Valid email is required', 400);
         }
-        return makeErrorResponse('Invalid credentials', 401);
-      }
-
-      clearFailedAttempts(sanitizedEmail);
-      clearRateLimitAuth(rateLimitKey);
-
-      const tokens = await createTokens({ id: user.id, email: user.email });
-      const expiresAt = Date.now() + REFRESH_TOKEN_EXPIRY_MS;
-      await saveRefreshToken(db, user.id, tokens.refreshToken, expiresAt);
-
-      return {
-        accessToken: tokens.accessToken,
-        refreshToken: tokens.refreshToken,
-        user: mapUser(user),
-        expiresIn: tokens.expiresIn,
-      };
-    },
-    {
-      body: t.Object({
-        email: t.String({ format: 'email' }),
-        password: t.String(),
-      }),
-    }
-  )
-  .post(
-    '/google',
-    async ({ body }) => {
-      const { idToken } = body as { idToken: string };
-
-      const db = getDb() as Kysely<Database>;
-      const googleClientId = process.env.GOOGLE_CLIENT_ID;
-
-      let payload: {
-        sub: string;
-        email: string;
-        name: string;
-        picture?: string;
-        aud?: string;
-      };
-      try {
-        const verifyUrl = googleClientId
-          ? `https://www.googleapis.com/oauth2/v3/tokeninfo?id_token=${idToken}&client_id=${googleClientId}`
-          : `https://www.googleapis.com/oauth2/v3/tokeninfo?id_token=${idToken}`;
-        const response = await fetch(verifyUrl);
-        payload = await response.json();
-      } catch {
-        return makeErrorResponse('Invalid Google token', 401);
-      }
-
-      if (!payload.sub || !payload.email) {
-        return makeErrorResponse('Invalid Google token', 401);
-      }
-
-      if (googleClientId && payload.aud !== googleClientId) {
-        return makeErrorResponse('Invalid Google token audience', 401);
-      }
-
-      let user = (await db
-        .selectFrom('users')
-        .selectAll()
-        .where('google_id', '=', payload.sub)
-        .executeTakeFirst()) as UserRow | undefined;
-
-      if (!user) {
-        const existingEmail = (await db
-          .selectFrom('users')
-          .selectAll()
-          .where('email', '=', payload.email.toLowerCase())
-          .executeTakeFirst()) as UserRow | undefined;
-
-        if (existingEmail) {
+        identifier = sanitizeEmail(email);
+      } else {
+        if (!phone || !isValidPhone(phone)) {
           return makeErrorResponse(
-            'email already registered. Please login with password.',
+            'Valid phone number with country code is required (e.g. +1234567890)',
             400
           );
         }
-
-        const id = crypto.randomUUID();
-        const now = Date.now();
-
-        await db
-          .insertInto('users')
-          .values({
-            id,
-            email: payload.email.toLowerCase(),
-            name: payload.name || payload.email.split('@')[0],
-            password_hash: null,
-            salt: null,
-            google_id: payload.sub,
-            avatar_url: payload.picture || null,
-            created_at: now,
-            updated_at: now,
-          })
-          .execute();
-
-        user = {
-          id,
-          email: payload.email.toLowerCase(),
-          name: payload.name || payload.email.split('@')[0],
-          password_hash: null,
-          salt: null,
-          google_id: payload.sub,
-          avatar_url: payload.picture || null,
-          created_at: now,
-          updated_at: now,
-        };
+        identifier = phone;
       }
 
-      await cleanExpiredTokens(db);
+      const ipForwarded = ctx.request.headers.get('x-forwarded-for');
+      const ipReal = ctx.request.headers.get('x-real-ip');
+      const clientIp = ipForwarded?.split(',')[0] || ipReal || 'unknown';
+      const rateLimitKey = `${identifier}:${clientIp}`;
 
-      const tokens = await createTokens({ id: user.id, email: user.email });
+      if (isRateLimitedAuth(rateLimitKey)) {
+        return makeErrorResponse(
+          'Too many requests. Please try again later',
+          429
+        );
+      }
+
+      const otp = generateOtp();
+      storeOtp(identifier, otp);
+
+      clearRateLimitAuth(rateLimitKey);
+
+      return {
+        message: `OTP sent to ${validatedMethod === 'email' ? email : phone}`,
+        identifier,
+        method: validatedMethod,
+      };
+    },
+    {
+      body: t.Object({
+        email: t.Optional(t.String()),
+        phone: t.Optional(t.String()),
+        method: t.String(),
+      }),
+    }
+  )
+  .post(
+    '/otp/verify',
+    async ({ body }) => {
+      const { email, phone, otp, method } = body as {
+        email?: string;
+        phone?: string;
+        otp: string;
+        method: string;
+      };
+
+      const validatedMethod = validateMethod(method);
+      if (!validatedMethod) {
+        return makeErrorResponse(
+          'Invalid method. Use "email" or "mobile"',
+          400
+        );
+      }
+
+      let identifier: string;
+      if (validatedMethod === 'email') {
+        if (!email) {
+          return makeErrorResponse('Email is required', 400);
+        }
+        identifier = sanitizeEmail(email);
+      } else {
+        if (!phone) {
+          return makeErrorResponse('Phone is required', 400);
+        }
+        identifier = phone;
+      }
+
+      if (!otp || otp.length < 4) {
+        return makeErrorResponse('Valid OTP is required', 400);
+      }
+
+      const isValid = verifyOtp(identifier, otp);
+      if (!isValid) {
+        return makeErrorResponse('Invalid or expired OTP', 401);
+      }
+
+      let user = await getExistingUser(validatedMethod, identifier);
+
+      if (!user) {
+        user = createNewUser(validatedMethod, identifier);
+      }
+
+      const userEmail = user.email || '';
+      const tokens = await createTokens({ id: user.id, email: userEmail });
       const expiresAt = Date.now() + REFRESH_TOKEN_EXPIRY_MS;
-      await saveRefreshToken(db, user.id, tokens.refreshToken, expiresAt);
+      saveRefreshToken(user.id, tokens.refreshToken, expiresAt);
 
       return {
         accessToken: tokens.accessToken,
@@ -348,7 +256,27 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
     },
     {
       body: t.Object({
-        idToken: t.String(),
+        email: t.Optional(t.String()),
+        phone: t.Optional(t.String()),
+        otp: t.String(),
+        method: t.String(),
+      }),
+    }
+  )
+  .post(
+    '/apple',
+    async ({ body }) => {
+      const { idToken } = body as { idToken: string };
+
+      if (!idToken) {
+        return makeErrorResponse('Apple ID token is required', 400);
+      }
+
+      return makeErrorResponse('Apple sign-in is not yet implemented', 501);
+    },
+    {
+      body: t.Object({
+        idToken: t.Optional(t.String()),
       }),
     }
   )
@@ -357,44 +285,37 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
     async ({ body }) => {
       const { refreshToken } = body as { refreshToken: string };
 
-      const db = getDb() as Kysely<Database>;
-
-      const storedToken = await db
-        .selectFrom('refresh_tokens')
-        .selectAll()
-        .where('token', '=', refreshToken)
-        .executeTakeFirst();
+      const storedToken = findRefreshToken(refreshToken);
 
       if (!storedToken) {
         return makeErrorResponse('Invalid refresh token', 401);
       }
 
-      if (storedToken.expires_at < Date.now()) {
-        await deleteRefreshToken(db, refreshToken);
+      if (storedToken.expiresAt < Date.now()) {
+        deleteRefreshToken(refreshToken);
         return makeErrorResponse('Refresh token expired', 401);
       }
 
       const payload = await verifyToken(refreshToken, 'refresh');
       if (!payload) {
-        await deleteRefreshToken(db, refreshToken);
+        deleteRefreshToken(refreshToken);
         return makeErrorResponse('Invalid refresh token', 401);
       }
 
-      await deleteRefreshToken(db, refreshToken);
+      deleteRefreshToken(refreshToken);
 
-      const user = (await db
-        .selectFrom('users')
-        .selectAll()
-        .where('id', '=', payload.sub)
-        .executeTakeFirst()) as UserRow | undefined;
+      const user = table.find<UserRecord>('users', payload.sub);
 
       if (!user) {
         return makeErrorResponse('User not found', 401);
       }
 
-      const tokens = await createTokens({ id: user.id, email: user.email });
+      const tokens = await createTokens({
+        id: user.id,
+        email: user.email || '',
+      });
       const expiresAt = Date.now() + REFRESH_TOKEN_EXPIRY_MS;
-      await saveRefreshToken(db, user.id, tokens.refreshToken, expiresAt);
+      saveRefreshToken(user.id, tokens.refreshToken, expiresAt);
 
       return {
         accessToken: tokens.accessToken,
@@ -414,8 +335,7 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
       const { refreshToken } = body as { refreshToken?: string };
 
       if (refreshToken) {
-        const db = getDb() as Kysely<Database>;
-        await deleteRefreshToken(db, refreshToken);
+        deleteRefreshToken(refreshToken);
       }
 
       return { success: true };
@@ -426,8 +346,8 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
       }),
     }
   )
-  .get('/me', async ({ headers }) => {
-    const authHeader = headers.authorization;
+  .get('/me', async (ctx) => {
+    const authHeader = ctx.request.headers.get('authorization');
     if (!authHeader?.startsWith('Bearer ')) {
       return makeErrorResponse('Unauthorized', 401);
     }
@@ -438,12 +358,7 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
       return makeErrorResponse('Invalid token', 401);
     }
 
-    const db = getDb() as Kysely<Database>;
-    const user = (await db
-      .selectFrom('users')
-      .selectAll()
-      .where('id', '=', payload.sub)
-      .executeTakeFirst()) as UserRow | undefined;
+    const user = table.find<UserRecord>('users', payload.sub);
 
     if (!user) {
       return makeErrorResponse('User not found', 401);
