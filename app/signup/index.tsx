@@ -1,10 +1,12 @@
-import { RegisterForm } from '@ui/auth/register-form';
 import { Text } from '@ui/text/text';
 import { useRouter } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
+import { useSignupState } from './signup-state';
+import { RegisterScreenContent } from './signup-ui';
 
 export default function RegisterScreen() {
   const router = useRouter();
+  useSignupState();
 
   const handleRegisterSuccess = () => {
     router.replace('/home');
@@ -17,7 +19,7 @@ export default function RegisterScreen() {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Create Account</Text>
-      <RegisterForm onSuccess={handleRegisterSuccess} />
+      <RegisterScreenContent onSuccess={handleRegisterSuccess} />
       <View style={styles.footer}>
         <Text style={styles.footerText}>
           Already have an account?{' '}

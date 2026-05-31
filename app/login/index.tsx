@@ -1,10 +1,12 @@
-import { LoginForm } from '@ui/auth/login-form';
 import { Text } from '@ui/text/text';
 import { useRouter } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
+import { useLoginState } from './login-state';
+import { LoginScreenContent } from './login-ui';
 
 export default function LoginScreen() {
   const router = useRouter();
+  useLoginState();
 
   const handleLoginSuccess = () => {
     router.replace('/home');
@@ -13,7 +15,7 @@ export default function LoginScreen() {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Sign In</Text>
-      <LoginForm onSuccess={handleLoginSuccess} />
+      <LoginScreenContent onSuccess={handleLoginSuccess} />
     </View>
   );
 }
