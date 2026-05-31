@@ -57,5 +57,6 @@ export function clearAuth() {
   authState$.accessToken.set(null);
   authState$.refreshToken.set(null);
   authState$.isAuthenticated.set(false);
+  authState$.isLoading.set(false);
   authState$.error.set(null);
 }

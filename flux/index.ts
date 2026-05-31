@@ -12,6 +12,13 @@ export { ObservablePersistFlux } from './persistence';
 export * from './auth-store';
 export * from './auth-hooks';
 export { api, apiClient, ApiError } from './api-client';
-export { createSyncedStore, type SyncedStoreConfig } from './sync';
+export {
+  createSyncedStore,
+  createSyncedValue,
+  type SyncedStoreConfig,
+  type SyncedValueConfig,
+} from './sync';
+export type { SyncedSubscribeParams } from '@legendapp/state/sync';
+export { migrateAuthKeys } from './migration';
 
 export { observable, batch } from '@legendapp/state';

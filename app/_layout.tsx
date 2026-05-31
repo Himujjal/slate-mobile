@@ -1,3 +1,4 @@
+import { migrateAuthKeys } from '@flux/migration';
 import type {
   ParamListBase,
   StackNavigationState,
@@ -12,6 +13,8 @@ import { ToastProvider } from '@ui/index';
 import { Colors, ThemeProvider, useThemeColor } from '@ui/theme';
 import { withLayoutContext } from 'expo-router';
 import { View } from 'react-native';
+
+migrateAuthKeys();
 
 /**
  * This is the only component that you have to care about

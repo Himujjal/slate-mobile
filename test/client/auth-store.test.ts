@@ -68,6 +68,7 @@ describe('auth-store', () => {
     it('should reset all auth state', () => {
       setAuthTokens('access', 'refresh');
       setAuthUser(makeUser());
+      setAuthLoading(true);
       setAuthError('some error');
 
       clearAuth();
@@ -76,6 +77,7 @@ describe('auth-store', () => {
       expect(authState$.accessToken.peek()).toBeNull();
       expect(authState$.refreshToken.peek()).toBeNull();
       expect(authState$.isAuthenticated.peek()).toBe(false);
+      expect(authState$.isLoading.peek()).toBe(false);
       expect(authState$.error.peek()).toBeNull();
     });
   });
