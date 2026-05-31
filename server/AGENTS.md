@@ -15,7 +15,7 @@ Slate server is an Elysia.js (Bun) API server that provides:
 
 - **Runtime**: Bun
 - **Framework**: Elysia.js
-- **Database**: Kysely (SQL query builder)
+- **Database**: SQLite via `@storage` package (`SqliteTableAdapter`)
 - **Linting**: Biome
 
 ## Code Style Guidelines
@@ -93,14 +93,26 @@ export type ExampleRoutes = typeof exampleRoutes;
 ```
 server/
 ├── index.ts             # Main entry point
-├── auth-route.ts         # Authentication routes
+├── auth-routes.ts        # Authentication routes
 ├── ai-routes.ts          # AI/LLM generation routes
 ├── orchestration-routes.ts  # Chat & classroom generation
 ├── content-routes.ts    # Content generation pipeline
 ├── utility-routes.ts    # Utility endpoints
 ├── middlewares.ts        # Shared middleware
+├── db/
+│   ├── index.ts         # DB barrel
+│   ├── database.ts      # Type definitions
+│   └── setup.ts         # SqliteTableAdapter init/close
+├── docs-routes.ts       # Documentation routes
+├── csrf.ts              # CSRF utilities
 ├── utils/
-│   └── db-setup.ts       # Database setup
+│   ├── auth-logger.ts
+│   ├── auth-security.ts
+│   ├── jwt.ts
+│   ├── markdown-to-html.ts
+│   ├── otp.ts
+│   ├── password.ts
+│   └── sanitize.ts
 ├── api.md               # API documentation
 ├── README.md            # Server README
 ├── AGENTS.md            # This file
@@ -137,5 +149,5 @@ Required:
 - `LLM_API_URL` - LLM API base URL (default: `https://api.openai.com/v1`)
 
 Optional:
-- Database connection string
+- `SLATE_DB_PATH` - SQLite database file path (default: `./slate.db`)
 - Other provider API keys

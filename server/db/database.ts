@@ -1,5 +1,3 @@
-import type { Generated } from 'kysely';
-
 export interface Database {
   users: {
     id: string;
@@ -13,7 +11,7 @@ export interface Database {
   };
 
   refresh_tokens: {
-    id: Generated<number>;
+    id: number;
     user_id: string;
     token: string;
     expires_at: number;
@@ -21,7 +19,7 @@ export interface Database {
   };
 
   otp_codes: {
-    id: Generated<number>;
+    id: number;
     identifier: string;
     otp: string;
     method: string;

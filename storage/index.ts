@@ -12,4 +12,5 @@ export {
   MemoryTableAdapter,
   type Table,
 } from './table';
+export { SqliteTableAdapter } from './sqlite-table-adapter';
 export type { KvAdapter, TableAdapter } from './types';
