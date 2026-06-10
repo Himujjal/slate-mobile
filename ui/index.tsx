@@ -6,6 +6,7 @@ export * from './card/card';
 export * from './checkbox/checkbox';
 export * from './chip/chip';
 export * from './divider/divider';
+export * from './hooks/index';
 export * from './fab/fab';
 export * from './icon/icon';
 export * from './image/image';
