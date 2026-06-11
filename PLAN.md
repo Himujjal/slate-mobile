@@ -49,14 +49,21 @@ All phases from the original plan plus this round of work are done:
 - **0 TypeScript errors** (`tsc --noEmit`)
 - **0 Biome lint errors**
 
-## Remaining (deferred / low priority)
+### Phase E: Realtime Demo & Test Coverage
 
-| Task | Reason |
-|------|--------|
-| 4.2 Demo store (chat/messages real-time) | Requires a WebSocket/SSE endpoint — better done when backend infra exists |
-| 4.3 Subscribe tests | Requires observable activation lifecycle mocking — better tested in integration with a real backend |
-| 3.4 Retry tests (custom delay, backoff, onError source, offline queuing) | Retry/backoff behavior is owned by Legend-State internals; our wrappers pass options through correctly (verified by 3.4 config validation tests) |
-| 2.4 Deep sync tests (single-value fetch/update/delete lifecycle) | `syncedCrud` lifecycle is owned by Legend-State; our wrappers correctly map config to `syncedCrud` props (verified by 2.4/5.3 config tests) |
+| # | Sub-task | Detail |
+|---|----------|--------|
+| 4.2 | Chat store + server SSE | `server/chat-routes.ts` — REST (`GET/POST /api/chat/messages`) + SSE (`GET /api/chat/stream`); `app/state/chat.store.ts` — `createSyncedStore` with `subscribe` connecting to SSE, appending new messages via `params.update`; registered in `server/index.ts` |
+| 4.3 | Subscribe tests | `test/client/subscribe.test.ts` — 7 tests: config acceptance, subscribe called on sync activation, params shape (update/refresh/onError/value$/lastSync) |
+| 3.4 | Retry tests | `test/client/retry.test.ts` — 7 tests: custom delay, exponential/constant/linear backoff, onError callback, retrySync, combined config for both store and value |
+| 2.4 | Deep sync tests | `test/client/deep-sync.test.ts` — 11 tests: createSyncedValue lifecycle (fetch null, fetch data, create, update, delete, full CRUD), createSyncedStore lifecycle (empty fetch, create, update, delete, full CRUD) |
+| — | Server chat tests | `test/server/chat.test.ts` — 7 tests: GET empty/list, POST create/persist/validation, SSE stream response/content delivery |
+
+### Stats
+
+- **96 tests** across 12 files, all passing
+- **0 TypeScript errors** (`tsc --noEmit`)
+- **0 Biome lint errors**
 
 ---
 
@@ -71,9 +78,16 @@ All phases from the original plan plus this round of work are done:
 | `app/_layout.tsx` | Added migration side-effect import |
 | `app/state/user.store.ts` | Refactored to use `createSyncedValue` |
 | `app/state/settings.store.ts` | **New** — Settings store |
+| `app/state/chat.store.ts` | **New** — Chat store using `createSyncedStore` with SSE subscribe |
+| `server/chat-routes.ts` | **New** — Chat REST + SSE endpoints |
+| `server/index.ts` | Added `.use(chatRoutes)` |
 | `test/client/persistence.test.ts` | **New** — 10 tests |
 | `test/client/state.test.ts` | **New** — 8 tests |
 | `test/client/auth-hooks.test.ts` | **New** — 17 tests |
 | `test/client/migration.test.ts` | **New** — 10 tests |
 | `test/client/sync.test.ts` | **New** — 4 tests |
+| `test/client/subscribe.test.ts` | **New** — 6 tests |
+| `test/client/retry.test.ts` | **New** — 7 tests |
+| `test/client/deep-sync.test.ts` | **New** — 11 tests |
+| `test/server/chat.test.ts` | **New** — 7 tests |
 | `test/client/auth-store.test.ts` | Updated `clearAuth` test to check `isLoading` |
